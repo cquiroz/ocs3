@@ -44,12 +44,19 @@ To tests the javascript side you need to install node and jsdom. In OSX using `b
 
 ```
 brew install node
+```
+
+From the ocs3 project root directory:
+```
 npm install jsdom
 ```
 
-`node` should be at least on version `0.6.x`, check it with `node --version` once installed
+Alternatively, if you already have jsdom globally installed you can make it visible to ocs3 by linking it. From the ocs3 project root directory:
+```
+npm link jsdom
+```
 
-Don't install jsdom at the global level (with the -g option) as it doesn't work properly with scala.js
+`node` should be at least on version `0.6.x`, check it with `node --version` once installed
 
 ## IDEA
 
