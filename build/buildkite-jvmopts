@@ -3,5 +3,3 @@
 -Xss6M
 -XX:ReservedCodeCacheSize=256M
 -XX:+TieredCompilation
--XX:+CMSClassUnloadingEnabled
--XX:+UseConcMarkSweepGC

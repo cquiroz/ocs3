@@ -3,12 +3,17 @@ set -xe
 
 cd `dirname $0`/..
 
+if [ -z $GRAALVM_HOME ]; then
+  GRAALVM_HOME=$JAVA_HOME
+fi
+
 ###
 ### BUILD
 ###
 
 echo "--- :scala: Compiling main codebase"
 /usr/local/bin/sbt                  \
+  -java-home $GRAALVM_HOME          \
   -jvm-opts build/buildkite-jvmopts \
   -Docs3.skipDependencyUpdates      \
   headerCheck                       \
@@ -23,6 +28,7 @@ echo "--- :scala: Compiling main codebase"
 # Compile tests
 echo "--- :scala: Compiling tests"
 /usr/local/bin/sbt                                        \
+  -java-home $GRAALVM_HOME                                \
   -jvm-opts build/buildkite-jvmopts                       \
   -Docs3.skipDependencyUpdates                            \
   -Docs3.databaseUrl=jdbc:postgresql://$HOST_AND_PORT/gem \
@@ -62,6 +68,7 @@ done
 # Set up the schema generate enums and run tests
 echo "--- :scala: Running tests"
 /usr/local/bin/sbt                                        \
+  -java-home $GRAALVM_HOME                                \
   -jvm-opts build/buildkite-jvmopts                       \
   -Docs3.skipDependencyUpdates                            \
   -Docs3.databaseUrl=jdbc:postgresql://$HOST_AND_PORT/gem \
@@ -85,12 +92,14 @@ fi
 
 echo "--- :javascript: Linking Javascript"
 /usr/local/bin/sbt                      \
+  -java-home $GRAALVM_HOME              \
   -jvm-opts build/buildkite-jvmopts     \
   -Docs3.skipDependencyUpdates          \
   ui/fastOptJS
 
 echo "--- :webpack: Webpack"
 /usr/local/bin/sbt                      \
+  -java-home $GRAALVM_HOME              \
   -jvm-opts build/buildkite-jvmopts     \
   -Docs3.skipDependencyUpdates          \
   seqexec_web_client/fastOptJS::webpack
@@ -105,6 +114,7 @@ if [ "$BUILDKITE_PULL_REQUEST" = "false" ] && [ "$BUILDKITE_BRANCH" = "develop" 
 
   echo "--- :docker: Creating a Docker image"
   /usr/local/bin/sbt                      \
+    -java-home $GRAALVM_HOME              \
     -jvm-opts build/buildkite-jvmopts     \
     -Docs3.skipDependencyUpdates          \
     main/docker:publish                   \
@@ -112,6 +122,7 @@ if [ "$BUILDKITE_PULL_REQUEST" = "false" ] && [ "$BUILDKITE_BRANCH" = "develop" 
 
   echo "--- :docker: Deploying to the test environment "
   /usr/local/bin/sbt                      \
+    -java-home $GRAALVM_HOME              \
     -jvm-opts build/buildkite-jvmopts     \
     -Docs3.skipDependencyUpdates          \
     ctl/deployTest
