@@ -57,11 +57,25 @@ module.exports.lessLoader = (options = {}) => {
 };
 
 // Extract css to a file, use only in production
-module.exports.extractCSS = ({ devMode, include, exclude, use = [] }) => {
+module.exports.extractCSS = ({
+  devMode,
+  include,
+  exclude,
+  use = [],
+  ci = false
+}) => {
   // Output extracted CSS to a file
   const plugin = new MiniCssExtractPlugin({
-    filename: devMode ? "[name].css" : "[name].[contenthash].css",
-    chunkFilename: devMode ? "[id].css" : "[id].[contenthash].css"
+    filename: devMode
+      ? "[name].css"
+      : ci
+        ? "[name].css"
+        : "[name].[contenthash].css",
+    chunkFilename: devMode
+      ? "[id].css"
+      : ci
+        ? "[id].css"
+        : "[id].[contenthash].css"
   });
 
   return {
