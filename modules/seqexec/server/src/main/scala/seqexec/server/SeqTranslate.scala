@@ -16,6 +16,7 @@ import edu.gemini.spModel.seqcomp.SeqConfigNames._
 import fs2.Stream
 import gem.Observation
 import gem.enum.Site
+import gem.math.Index
 import mouse.all._
 import org.log4s._
 import org.http4s.Uri._
@@ -124,10 +125,10 @@ class SeqTranslate(site: Site, systems: Systems, settings: Settings) {
     } yield Result.Partial(FileIdAllocated(id), doObserve(id).value.map(_.toResult))
   }
 
-  private def step(obsId: Observation.Id, i: Int, config: Config, nextToRun: Int, datasets: Map[Int, ExecutedDataset]): TrySeq[SequenceGen.Step] = {
+  private def step(obsId: Observation.Id, i: Index, config: Config, nextToRun: Index, datasets: Map[Int, ExecutedDataset]): TrySeq[SequenceGen.Step] = {
     def buildStep(inst: InstrumentSystem[IO], sys: List[System[IO]], headers: Reader[HeaderExtraData,List[Header]]): HeaderExtraData => Step = ctx => {
       val initialStepExecutions: List[List[Action]] =
-        if (i === 0) List(List(systems.odb.sequenceStart(obsId, "").map(_ => Result.Ignored).toAction(ActionType.Undefined)))
+        if (i === Index.One) List(List(systems.odb.sequenceStart(obsId, "").map(_ => Result.Ignored).toAction(ActionType.Undefined)))
         else Nil
 
       val regularStepExecutions: List[List[Action]] =
@@ -145,7 +146,7 @@ class SeqTranslate(site: Site, systems: Systems, settings: Settings) {
         )
         case StepState.Pending => Step.init(
           id = i,
-          fileId = datasets.get(i + 1).map(_.filename), // Note that steps on datasets are indexed starting on 1
+          fileId = datasets.get(i |+| Index.One).map(_.filename), // Note that steps on datasets are indexed starting on 1
           // TODO: Is it possible to reconstruct done executions from the ODB?
           executions = Nil
         ).copy(skipped = Step.Skipped(true))
@@ -153,7 +154,7 @@ class SeqTranslate(site: Site, systems: Systems, settings: Settings) {
         // status is unknown.
         case _ => Step.init(
           id = i,
-          fileId = datasets.get(i + 1).map(_.filename), // Note that steps on datasets are indexed starting on 1
+          fileId = datasets.get(i |+| Index.One).map(_.filename), // Note that steps on datasets are indexed starting on 1
           // TODO: Is it possible to reconstruct done executions from the ODB?
           executions = Nil
         ).copy(skipped = Step.Skipped(extractSkipped(config)))

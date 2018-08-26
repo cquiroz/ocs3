@@ -3,17 +3,17 @@
 
 package seqexec.engine
 
-import seqexec.model.StepState
-
 import cats.implicits._
+import gem.math.Index
 import monocle.Lens
 import monocle.macros.GenLens
+import seqexec.model.StepState
 
 /**
   * A list of `Executions` grouped by observation.
   */
 final case class Step(
-  id: Step.Id,
+  id: Index,
   fileId: Option[FileId],
   breakpoint: Step.BreakpointMark,
   skipped: Step.Skipped,
@@ -23,13 +23,11 @@ final case class Step(
 
 object Step {
 
-  type Id = Int
-
   final case class BreakpointMark(self: Boolean) extends AnyVal
   final case class SkipMark(self: Boolean) extends AnyVal
   final case class Skipped(self: Boolean) extends AnyVal
 
-  def init(id: Id,
+  def init(id: Index,
            fileId: Option[FileId],
            executions: List[List[Action]]): Step = Step(id, fileId, BreakpointMark(false), Skipped(false), SkipMark(false), executions)
 
@@ -60,7 +58,7 @@ object Step {
     *
     */
   final case class Zipper(
-    id: Int,
+    id: Index,
     fileId: Option[FileId],
     breakpoint: BreakpointMark,
     skipMark: SkipMark,

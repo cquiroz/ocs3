@@ -7,6 +7,7 @@ import cats.effect.IO
 import cats.implicits._
 import fs2.Stream
 import gem.Observation
+import gem.math.Index
 import seqexec.model.ClientID
 import seqexec.model.UserDetails
 
@@ -22,8 +23,8 @@ object Event {
   def start[D<:Engine.Types](id: Observation.Id, user: UserDetails, clientId: ClientID, userCheck: D#StateType => Boolean): Event[D] = EventUser[D](Start[D](id, user.some, clientId, userCheck))
   def pause[D<:Engine.Types](id: Observation.Id, user: UserDetails): Event[D] = EventUser[D](Pause(id, user.some))
   def cancelPause[D<:Engine.Types](id: Observation.Id, user: UserDetails): Event[D] = EventUser[D](CancelPause(id, user.some))
-  def breakpoint[D<:Engine.Types](id: Observation.Id, user: UserDetails, step: Step.Id, v: Boolean): Event[D] = EventUser[D](Breakpoint(id, user.some, step, v))
-  def skip[D<:Engine.Types](id: Observation.Id, user: UserDetails, step: Step.Id, v: Boolean): Event[D] = EventUser[D](SkipMark(id, user.some, step, v))
+  def breakpoint[D<:Engine.Types](id: Observation.Id, user: UserDetails, step: Index, v: Boolean): Event[D] = EventUser[D](Breakpoint(id, user.some, step, v))
+  def skip[D<:Engine.Types](id: Observation.Id, user: UserDetails, step: Index, v: Boolean): Event[D] = EventUser[D](SkipMark(id, user.some, step, v))
   def poll(clientId: ClientID): Event[Nothing] = EventUser(Poll(clientId))
   def getState[D<:Engine.Types](f: D#StateType => Option[Stream[IO, Event[D]]]): Event[D] = EventUser[D](GetState[D](f))
   def modifyState[D<:Engine.Types](f: D#StateType => D#StateType, event: D#EventData): Event[D] = EventUser[D](ModifyState[D](f, event))

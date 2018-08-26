@@ -3,7 +3,7 @@
 
 package gem.math
 
-import cats.{ Order, Show }
+import cats.{ Order, Show, Semigroup }
 import cats.instances.short._
 import mouse.boolean._
 import gem.parser.MiscParsers
@@ -26,6 +26,10 @@ object Index extends IndexOptics {
   implicit val showIndex: Show[Index] =
     Show.fromToString
 
+  implicit val indexAdditionSemigroup: Semigroup[Index] = new Semigroup[Index] {
+    def combine(x: Index, y: Index): Index =
+      fromShort.unsafeGet((x.toShort + y.toShort).toShort)
+  }
 }
 
 trait IndexOptics {

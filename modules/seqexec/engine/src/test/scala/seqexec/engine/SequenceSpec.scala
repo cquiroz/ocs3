@@ -3,19 +3,18 @@
 
 package seqexec.engine
 
-import java.util.UUID
-
-import seqexec.model.SequenceState
-import seqexec.model.{ActionType, UserDetails}
-
-import scala.Function.const
-import org.scalatest.FlatSpec
-import org.scalatest.Inside.inside
-import org.scalatest.Matchers._
 import cats.effect.IO
 import fs2.Stream
 import gem.Observation
-
+import gem.math.Index
+import gem.syntax.all._
+import java.util.UUID
+import org.scalatest.FlatSpec
+import org.scalatest.Inside.inside
+import org.scalatest.Matchers._
+import seqexec.model.SequenceState
+import seqexec.model.{ActionType, UserDetails}
+import scala.Function.const
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
@@ -59,7 +58,7 @@ class SequenceSpec extends FlatSpec {
 
   private def always[D]: D => Boolean = _ => true
 
-  def simpleStep(id: Int, breakpoint: Boolean): Step =
+  def simpleStep(id: Index, breakpoint: Boolean): Step =
     Step.init(
       id = id,
       fileId = None,
@@ -91,7 +90,7 @@ class SequenceSpec extends FlatSpec {
             Sequence.State.init(
               Sequence(
                 id = seqId,
-                steps = List(simpleStep(1, breakpoint = false), simpleStep(2, breakpoint = true))
+                steps = List(simpleStep(Index.One, breakpoint = false), simpleStep(Index.fromShort.unsafeGet(2), breakpoint = true))
               )
             )
           )
@@ -117,7 +116,7 @@ class SequenceSpec extends FlatSpec {
             Sequence.State.init(
               Sequence(
                 id = seqId,
-                steps = List(simpleStep(1, breakpoint = false), simpleStep(2, breakpoint = true), simpleStep(3, breakpoint = false))
+                steps = List(simpleStep(Index.One, breakpoint = false), simpleStep(Index.fromShort.unsafeGet(2), breakpoint = true), simpleStep(Index.fromShort.unsafeGet(3), breakpoint = false))
               )
             )
           )
@@ -153,7 +152,7 @@ class SequenceSpec extends FlatSpec {
       case x::xs => (Execution(x), xs)
     }
 
-    Step.Zipper(1, None, breakpoint = Step.BreakpointMark(false), Step.SkipMark(false), pending, focus, done.map(_.map{r =>
+    Step.Zipper(Index.One, None, breakpoint = Step.BreakpointMark(false), Step.SkipMark(false), pending, focus, done.map(_.map{r =>
       val x = fromIO(ActionType.Observe, IO(r))
       x.copy(state = Execution.actionStateFromResult(r)(x.state))
     }), rollback)

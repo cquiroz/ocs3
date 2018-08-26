@@ -8,10 +8,11 @@ import org.scalacheck.Arbitrary._
 import java.time.Instant
 import cats.implicits._
 import gem.Observation
-import gem.arb.ArbObservation
+import gem.math.Index
+import gem.arb.{ ArbIndex, ArbObservation }
 import seqexec.model.enum._
 
-trait SeqexecModelArbitraries extends ArbObservation {
+trait SeqexecModelArbitraries extends ArbObservation with ArbIndex {
 
   private val maxListSize = 2
 
@@ -103,7 +104,7 @@ trait SeqexecModelArbitraries extends ArbObservation {
   implicit val snArb  = Arbitrary(Gen.oneOf(SystemName.all))
   implicit val steArb = Arbitrary[Step] {
     for {
-      id <- arbitrary[StepId]
+      id <- arbitrary[Index]
       c  <- arbitrary[StepConfig]
       s  <- arbitrary[StepState]
       b  <- arbitrary[Boolean]
@@ -114,7 +115,7 @@ trait SeqexecModelArbitraries extends ArbObservation {
 
   implicit val stsArb = Arbitrary[StandardStep] {
     for {
-      id <- arbitrary[StepId]
+      id <- arbitrary[Index]
       c  <- arbitrary[StepConfig]
       s  <- arbitrary[StepState]
       b  <- arbitrary[Boolean]
@@ -183,10 +184,10 @@ trait SeqexecModelArbitraries extends ArbObservation {
     Cogen[String].contramap(_.productPrefix)
 
   implicit val stepCogen: Cogen[Step] =
-    Cogen[(StepId, Map[SystemName, Map[String, String]], StepState, Boolean, Boolean, Option[dhs.ImageFileId])].contramap(s => (s.id, s.config, s.status, s.breakpoint, s.skip, s.fileId))
+    Cogen[(Index, Map[SystemName, Map[String, String]], StepState, Boolean, Boolean, Option[dhs.ImageFileId])].contramap(s => (s.id, s.config, s.status, s.breakpoint, s.skip, s.fileId))
 
   implicit val standardStepCogen: Cogen[StandardStep] =
-    Cogen[(StepId, Map[SystemName, Map[String, String]], StepState, Boolean, Boolean, Option[dhs.ImageFileId], List[(Resource, ActionStatus)], ActionStatus)].contramap(s => (s.id, s.config, s.status, s.breakpoint, s.skip, s.fileId, s.configStatus, s.observeStatus))
+    Cogen[(Index, Map[SystemName, Map[String, String]], StepState, Boolean, Boolean, Option[dhs.ImageFileId], List[(Resource, ActionStatus)], ActionStatus)].contramap(s => (s.id, s.config, s.status, s.breakpoint, s.skip, s.fileId, s.configStatus, s.observeStatus))
 
   implicit val sqsCogen: Cogen[SequenceState] =
     Cogen[String].contramap(_.productPrefix)

@@ -5,6 +5,7 @@ package seqexec.engine
 
 import seqexec.model.{SequenceState, StepState}
 import gem.Observation
+import gem.math.Index
 import cats.implicits._
 import monocle.Lens
 import monocle.macros.GenLens
@@ -169,9 +170,9 @@ object Sequence {
 
     def skips: Option[State]
 
-    def setBreakpoint(stepId: Step.Id, v: Boolean): State
+    def setBreakpoint(stepId: Index, v: Boolean): State
 
-    def setSkipMark(stepId: Step.Id, v: Boolean): State
+    def setSkipMark(stepId: Index, v: Boolean): State
 
     def getCurrentBreakpoint: Boolean
 
@@ -271,11 +272,11 @@ object Sequence {
         case Some(x) => Zipper(x, status).some
       }
 
-      override def setBreakpoint(stepId: Step.Id, v: Boolean): State = self.copy(zipper =
+      override def setBreakpoint(stepId: Index, v: Boolean): State = self.copy(zipper =
         zipper.copy(pending =
           zipper.pending.map(s => if(s.id == stepId) s.copy(breakpoint = Step.BreakpointMark(v)) else s)))
 
-      override def setSkipMark(stepId: Step.Id, v: Boolean): State = self.copy(zipper =
+      override def setSkipMark(stepId: Index, v: Boolean): State = self.copy(zipper =
         if(zipper.focus.id == stepId) zipper.copy(focus = zipper.focus.copy(skipMark = Step.SkipMark(v)))
         else zipper.copy(pending =
           zipper.pending.map(s => if(s.id == stepId) s.copy(skipMark = Step.SkipMark(v)) else s)))
@@ -352,9 +353,9 @@ object Sequence {
 
       override def skips: Option[State] = self.some
 
-      override def setBreakpoint(stepId: Step.Id, v: Boolean): State = self
+      override def setBreakpoint(stepId: Index, v: Boolean): State = self
 
-      override def setSkipMark(stepId: Step.Id, v: Boolean): State = self
+      override def setSkipMark(stepId: Index, v: Boolean): State = self
 
       override def getCurrentBreakpoint: Boolean = false
 

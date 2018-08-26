@@ -5,10 +5,11 @@ package seqexec.model
 
 import cats._
 import cats.implicits._
+import gem.math.Index
 import seqexec.model.enum._
 
 sealed trait Step {
-  val id: StepId
+  val id: Index
   val config: StepConfig
   val status: StepState
   val breakpoint: Boolean
@@ -16,7 +17,7 @@ sealed trait Step {
   val fileId: Option[dhs.ImageFileId]
 }
 object Step {
-  val Zero: Step = StandardStep(id = -1, config = Map.empty, status = StepState.Pending, breakpoint = false, skip = false, fileId = None, configStatus = Nil, observeStatus = ActionStatus.Pending)
+  val Zero: Step = StandardStep(id = Index.One, config = Map.empty, status = StepState.Pending, breakpoint = false, skip = false, fileId = None, configStatus = Nil, observeStatus = ActionStatus.Pending)
 
   implicit val equal: Eq[Step] =
     Eq.by { x =>
@@ -75,7 +76,7 @@ object Step {
 }
 
 final case class StandardStep(
-  override val id: StepId,
+  override val id: Index,
   override val config: StepConfig,
   override val status: StepState,
   override val breakpoint: Boolean,
@@ -84,6 +85,7 @@ final case class StandardStep(
   configStatus: List[(Resource, ActionStatus)],
   observeStatus: ActionStatus
 ) extends Step
+
 object StandardStep {
   implicit val equal: Eq[StandardStep] =
     Eq.by { x =>

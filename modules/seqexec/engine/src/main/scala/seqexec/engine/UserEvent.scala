@@ -7,6 +7,7 @@ import cats.effect.IO
 import cats.implicits._
 import fs2.Stream
 import gem.Observation
+import gem.math.Index
 import seqexec.model.ClientID
 import seqexec.model.UserDetails
 
@@ -21,8 +22,8 @@ sealed trait UserEvent[D<:Engine.Types] {
 final case class Start[D<:Engine.Types](id: Observation.Id, user: Option[UserDetails], clientId: ClientID, userCheck: D#StateType => Boolean) extends UserEvent[D]
 final case class Pause[D<:Engine.Types](id: Observation.Id, user: Option[UserDetails]) extends UserEvent[D]
 final case class CancelPause[D<:Engine.Types](id: Observation.Id, user: Option[UserDetails]) extends UserEvent[D]
-final case class Breakpoint[D<:Engine.Types](id: Observation.Id, user: Option[UserDetails], step: Step.Id, v: Boolean) extends UserEvent[D]
-final case class SkipMark[D<:Engine.Types](id: Observation.Id, user: Option[UserDetails], step: Step.Id, v: Boolean) extends UserEvent[D]
+final case class Breakpoint[D<:Engine.Types](id: Observation.Id, user: Option[UserDetails], step: Index, v: Boolean) extends UserEvent[D]
+final case class SkipMark[D<:Engine.Types](id: Observation.Id, user: Option[UserDetails], step: Index, v: Boolean) extends UserEvent[D]
 final case class Poll[D<:Engine.Types](clientId: ClientID) extends UserEvent[D] {
   val user: Option[UserDetails] = None
 }
