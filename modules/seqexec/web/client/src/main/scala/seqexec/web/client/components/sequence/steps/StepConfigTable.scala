@@ -11,6 +11,7 @@ import japgolly.scalajs.react.component.Scala.Unmounted
 import japgolly.scalajs.react.vdom.html_<^._
 import japgolly.scalajs.react.raw.JsNumber
 import japgolly.scalajs.react.component.builder.Lifecycle.RenderScope
+import japgolly.scalajs.react.extra.Reusability
 import cats.implicits._
 import react.virtualized._
 import scala.scalajs.js
@@ -20,6 +21,7 @@ import seqexec.web.client.components.SeqexecStyles
 import seqexec.web.client.components.TableContainer
 import seqexec.web.client.circuit.SeqexecCircuit
 import seqexec.web.client.actions.UpdateStepsConfigTableState
+import seqexec.web.client.reusability._
 import web.client.table._
 
 object StepConfigTable {
@@ -50,6 +52,9 @@ object StepConfigTable {
         .lift(idx)
         .fold(SettingsRow.zero)(Function.tupled(SettingsRow.apply))
   }
+
+  implicit val tcReuse: Reusability[TableColumn] = Reusability.byRef
+  implicit val propsReuse: Reusability[Props] = Reusability.derive[Props]
 
   // ScalaJS defined trait
   // scalastyle:off
@@ -82,7 +87,7 @@ object StepConfigTable {
     name    = "name",
     label   = "Name",
     visible = true,
-    width = PercentageColumnWidth.unsafeFromDouble(
+    width = VariableColumnWidth.unsafeFromDouble(
       percentage = 0.5,
       minWidth   = 57.3833 + SeqexecStyles.TableBorderWidth)
   )
@@ -93,7 +98,7 @@ object StepConfigTable {
     label   = "Value",
     visible = true,
     width =
-      PercentageColumnWidth.unsafeFromDouble(percentage = 0.5, minWidth = 60.0))
+      VariableColumnWidth.unsafeFromDouble(percentage = 0.5, minWidth = 60.0))
 
   val InitialTableState: TableState[TableColumn] = TableState[TableColumn](
     userModified   = NotModified,
@@ -104,7 +109,6 @@ object StepConfigTable {
     b:    Backend,
     size: Size
   ): ColumnRenderArgs[TableColumn] => Table.ColumnArg = tb => {
-    val state = b.state
     def updateState(s: TableState[TableColumn]): Callback =
       b.setState(s) >> SeqexecCircuit.dispatchCB(UpdateStepsConfigTableState(s))
 
@@ -115,7 +119,7 @@ object StepConfigTable {
             width          = width,
             dataKey        = name,
             label          = label,
-            headerRenderer = resizableHeaderRenderer(state.resizeRow(c, size, updateState)),
+            headerRenderer = resizableHeaderRenderer(b.state.resizeRow(c, size, updateState)),
             className      = SeqexecStyles.paddedStepRow.htmlClass
           ))
       case ColumnRenderArgs(ColumnMeta(_, name, label, _, _), _, width, false) =>
@@ -179,8 +183,9 @@ object StepConfigTable {
     .render ( b =>
       TableContainer(TableContainer.Props(true, size =>
         Table(settingsTableProps(b, size),
-              b.state.columnBuilder(size, colBuilder(b, size)): _*)))
+              b.state.columnBuilder(size, TableState.AllColsVisible, colBuilder(b, size)): _*)))
     )
+    .configure(Reusability.shouldComponentUpdate)
     .build
 
   def apply(p: Props): Unmounted[Props, TableState[TableColumn], Unit] =
