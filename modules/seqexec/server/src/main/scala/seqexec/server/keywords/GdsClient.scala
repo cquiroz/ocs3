@@ -15,17 +15,21 @@ import org.http4s.dsl.io._
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.client.middleware.Retry
 import org.http4s.client.middleware.RetryPolicy
+import org.http4s.client.middleware.Metrics
+import org.http4s.metrics.prometheus.Prometheus
 import org.http4s.scalaxml._
 import org.http4s.implicits._
 import scala.concurrent.duration._
 import scala.xml.Elem
 import seqexec.model.dhs.ImageFileId
 import seqexec.server.SeqexecFailure
+import seqexec.server.SeqActionF
+import seqexec.server.SeqexecMetrics
 
 /**
   * Gemini Data service client
   */
-final case class GdsClient[F[_]: Effect: Functor](base: Client[F], gdsUri: Uri)(implicit timer: Timer[F])
+final case class GdsClient[F[_]: Effect: Functor](base: Client[F], gdsUri: Uri, prefix: String, m: SeqexecMetrics)(implicit timer: Timer[F])
     extends Http4sClientDsl[F] {
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
@@ -39,7 +43,10 @@ final case class GdsClient[F[_]: Effect: Functor](base: Client[F], gdsUri: Uri)(
         Some(10.milliseconds)
       }
     }
-    Retry(policy)(base)
+
+    val requestMethodClassifier = (r: Request[IO]) => Some(r.method.toString.toLowerCase)
+    val meteredClient = Metrics[IO](Prometheus(m.registry, s"seqexec_gds_client_$prefix"), requestMethodClassifier)(base)
+    Retry(policy)(meteredClient)
   }
 
   // Build an xml rpc request to store keywords

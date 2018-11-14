@@ -11,6 +11,7 @@ import io.prometheus.client._
 
 final case class SeqexecMetrics private (
   site: Site,
+  registry: CollectorRegistry,
   private val qs: Gauge,  // Amount of items on the list of queues
   private val ss: Counter // Sequences started
 )
@@ -22,6 +23,7 @@ object SeqexecMetrics {
     Sync[F].delay(
       SeqexecMetrics(
         site,
+        c,
         qs = Gauge
           .build()
           .name(s"${prefix}_queue_size")

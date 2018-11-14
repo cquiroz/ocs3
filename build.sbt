@@ -538,6 +538,7 @@ lazy val seqexec_server = project
           Log4s.value,
           Http4sXml,
           Http4sBoopickle,
+          Http4sPrometheus,
           PrometheusClient
       ) ++ Http4s ++ Http4sClient ++ SeqexecOdb ++ Monocle.value ++ WDBAClient ++ TestLibs.value ++
         Circe.value
