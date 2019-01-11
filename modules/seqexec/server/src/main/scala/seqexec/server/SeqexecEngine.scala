@@ -851,7 +851,7 @@ object SeqexecEngine extends SeqexecConfiguration {
     case UpdateQueueClear(qid)              => QueueUpdated(QueueManipulationOp.Clear(qid), svs)
     case StartQueue(qid, _)                 => QueueUpdated(QueueManipulationOp.Started(qid), svs)
     case StopQueue(qid, _)                  => QueueUpdated(QueueManipulationOp.Stopped(qid), svs)
-    case StartSysConfig(_, _, _)            => NullEvent
+    case StartSysConfig(sid, _, _)          => SingleActionEvent(SingleActionOp.Started(sid))
   }
 
   def toSeqexecEvent(ev: executeEngine.ResultType)(svs: => SequencesQueue[SequenceView]): SeqexecEvent = ev match {
