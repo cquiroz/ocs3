@@ -187,7 +187,7 @@ package object server {
     def either[F[_]: Sync, A](a: => TrySeq[A]): SeqActionF[F, A] =
       EitherT(Sync[F].delay(a))
     def void[F[_]: Applicative]: SeqActionF[F, Unit] =
-      EitherT.liftF(Applicative[F].pure(()))
+      EitherT.liftF(Applicative[F].unit)
 
     implicit def SeqActionFLiftIO[F[_]: LiftIO: Functor]
       : LiftIO[SeqActionF[F, ?]] =
@@ -195,6 +195,7 @@ package object server {
         override def liftIO[A](ioa: IO[A]): SeqActionF[F, A] =
           SeqActionF.liftIO(ioa)
       }
+
   }
 
   implicit class StreamIOOps[A](s: Stream[IO, A]) {
@@ -208,7 +209,13 @@ package object server {
   }
 
   implicit class EitherTFailureOps[F[_]: MonadError[?[_], Throwable], A](s: EitherT[F, SeqexecFailure, A]) {
-    def liftF: F[A] = s.value.flatMap(_.liftTo[F])
+    def liftF: F[A] =
+      s.value.flatMap(_.liftTo[F])
+  }
+
+  implicit class IOOps[F[_]: LiftIO, A](ioa: IO[A]) {
+    def liftIO: SeqActionF[F, A] =
+      SeqActionF.liftIO(ioa)
   }
 
   // This assumes that there is only one instance of e in l
