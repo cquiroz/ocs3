@@ -378,9 +378,9 @@ public class CaObserveSenderImpl<C extends Enum<C> & CarStateGeneric> implements
                 failCommandWithObserveCarError(cm);
                 return idleObserveState;
             }
-            else if (observeCarState.isPaused()){
+            else if (carState.isPaused()) {
                 pauseCommand(cm);
-                return new ObserveWaitIdle(carState, cm);
+                return new ObservePaused(carState, cm);
             }
             else {
                 // Should never get here
@@ -431,6 +431,49 @@ public class CaObserveSenderImpl<C extends Enum<C> & CarStateGeneric> implements
         public boolean isDone() { return true; }
 
     };
+
+    // At this state we are paused and waiting for a resume
+    private final class ObservePaused implements ObserveState {
+        final CaCommandMonitorImpl cm;
+        final CarStateGeneric observeCarState;
+
+        ObservePaused(final CarStateGeneric observeCarState, final CaCommandMonitorImpl cm) {
+            this.observeCarState = observeCarState;
+            this.cm = cm;
+        }
+
+        public String signature() { return "ObservePaused"; }
+
+        public ObserveState onObserveCarValChange(final CarStateGeneric carState) {
+          if (carState.isBusy()) {
+              // Now we are busy, let's go to wait for idle
+              return new ObserveWaitIdle(carState, cm);
+          } else if (carState.isError()) {
+              // Signal an error
+              failCommandWithObserveCarError(cm);
+              return idleObserveState;
+          } else if (carState.isPaused()) {
+              return this;
+          } else {
+              // No change, preserve the car
+              return new ObservePaused(carState, cm);
+          }
+        }
+
+        public CaObserveSenderImpl.ObserveState onStopMarkChange(final Short val) {
+            return new ObserveWaitStop(cm, val);
+        }
+
+        public CaObserveSenderImpl.ObserveState onAbortMarkChange(final Short val) {
+            return new ObserveWaitAbort(cm, val);
+        }
+
+        @Override
+        public boolean isPaused() {
+            return true;
+        }
+
+    }
 
     // Wait for stop to go idle
     private final class ObserveWaitStop implements ObserveState {
@@ -986,6 +1029,8 @@ public class CaObserveSenderImpl<C extends Enum<C> & CarStateGeneric> implements
           ObserveState state = currentObserveState().onObserveCarValChange(carState);
           if (state.isDone() || state.isAborted() || state.isStopped()) {
               return checkOutCompletion(carState, clid, state);
+          } else if (state.isPaused()) {
+              return idleState;
           } else {
               return copyWithObserveState(state);
           }
@@ -1007,10 +1052,6 @@ public class CaObserveSenderImpl<C extends Enum<C> & CarStateGeneric> implements
                 }
                 if (observeState.isAborted()) {
                     failCommand(cm, new CaObserveAborted());
-                    return idleState;
-                }
-                if (observeState.isPaused()) {
-                    pauseCommand(cm);
                     return idleState;
                 }
             }
