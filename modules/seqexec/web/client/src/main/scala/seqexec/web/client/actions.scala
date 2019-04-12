@@ -98,6 +98,7 @@ object actions {
   final case class ClearRunOnError(s:      Observation.Id) extends Action
   final case class ClearOperations(s:      Observation.Id) extends Action
   final case object ClearAllOperations                     extends Action
+  final case class ClearAllResourceOperations(s: Observation.Id) extends Action
   final case class RunAbort(s:             Observation.Id) extends Action
   final case class RunAbortFailed(s:       Observation.Id) extends Action
   final case class RunObsPause(s:          Observation.Id) extends Action

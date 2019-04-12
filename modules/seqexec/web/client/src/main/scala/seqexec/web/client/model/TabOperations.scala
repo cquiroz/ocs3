@@ -124,6 +124,9 @@ object TabOperations {
     r: Resource): Lens[TabOperations, Option[ResourceRunOperation]] =
     TabOperations.resourceRunRequested ^|-> at(r)
 
+  def clearResourceOperations: TabOperations => TabOperations =
+    TabOperations.resourceRunRequested.modify(x => x.map { case (r, _) => r -> ResourceRunOperation.ResourceRunIdle })
+
   val Default: TabOperations =
     TabOperations(RunOperation.RunIdle,
                   SyncOperation.SyncIdle,

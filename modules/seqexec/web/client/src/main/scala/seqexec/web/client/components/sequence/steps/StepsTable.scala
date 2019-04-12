@@ -38,6 +38,7 @@ import seqexec.web.client.circuit.StepsTableAndStatusFocus
 import seqexec.web.client.circuit.StepsTableFocus
 import seqexec.web.client.actions.UpdateStepTableState
 import seqexec.web.client.actions.UpdateSelectedStep
+import seqexec.web.client.actions.ClearAllResourceOperations
 import seqexec.web.client.components.SeqexecStyles
 import seqexec.web.client.components.TableContainer
 import seqexec.web.client.components.sequence.steps.OffsetFns._
@@ -688,6 +689,8 @@ object StepsTable {
     b.props.obsId.map { id =>
       (SeqexecCircuit
         .dispatchCB(UpdateSelectedStep(id, i)) *>
+       SeqexecCircuit
+        .dispatchCB(ClearAllResourceOperations(id)) *>
         b.modState(State.selected.set(Some(i))) *>
         recomputeRowHeightsCB(min(b.state.selected.getOrElse(i), i)))
         .when(b.props
