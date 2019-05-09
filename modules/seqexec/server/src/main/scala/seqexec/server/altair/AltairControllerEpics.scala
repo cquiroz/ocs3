@@ -285,8 +285,8 @@ object AltairControllerEpics extends AltairController[IO] {
   def retrieveConfig: IO[EpicsAltairConfig] = for {
     cmtxx <- getStatusVal(epicsAltair.matrixStartX.map(_.map(Millimeters(_))), "current control matrix X", "Altair")
     cmtxy <- getStatusVal(epicsAltair.matrixStartY.map(_.map(Millimeters(_))), "current control matrix Y", "Altair")
-    pmtxx <- getStatusVal(epicsTcs.aoPreparedCMX.map(_.map(Millimeters(_))), "Altair next control matrix X", "TCS")
-    pmtxy <- getStatusVal(epicsTcs.aoPreparedCMY.map(_.map(Millimeters(_))), "Altair next control matrix Y", "TCS")
+    pmtxx <- getStatusVal(epicsTcs.aoPreparedCMX.map(Millimeters(_).some), "Altair next control matrix X", "TCS")
+    pmtxy <- getStatusVal(epicsTcs.aoPreparedCMY.map(Millimeters(_).some), "Altair next control matrix Y", "TCS")
     strRT <- getStatusVal(epicsAltair.strapRTStatus, "strap RT control status", "Altair")
     strTm <- getStatusVal(epicsAltair.strapTempStatus, "strap temperature control status", "Altair")
     strHV <- getStatusVal(epicsAltair.strapHVStatus, "strap HVolt status", "Altair")

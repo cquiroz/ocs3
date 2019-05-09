@@ -31,7 +31,6 @@ import squants.Velocity
 final class GwsEpics[F[_]: Sync] private (epicsService: CaService) {
   private val state = epicsService.getStatusAcceptor("gws::state")
 
-  // Eventually move it to a shared package
   private def readD(name: String): F[Double] =
     safeAttributeSDoubleF[F](name, state.getDoubleAttribute(name))
   private def readI(name: String): F[Int] =

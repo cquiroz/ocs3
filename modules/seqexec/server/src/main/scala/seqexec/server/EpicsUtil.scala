@@ -394,6 +394,12 @@ object EpicsUtil {
       .ensure(NullEpicsError(name))(_.isDefined) // equivalent to a null check
       .map{_.orNull} // orNull lets us typecheck but it will never be used due to the `ensure` call above
 
+  def safeAttributeListF[F[_]: Sync, A >: Null](name: String, get: => CaAttribute[A]): F[List[A]] =
+    Sync[F].delay(Option(get.values)) // Wread reading the list in an option to do null checks
+      .adaptError{ case e => SeqexecException(e)} // wrap CA errors
+      .ensure(NullEpicsError(name))(_.isDefined) // equivalent to a null check
+      .map(_.foldMap(_.asScala.toList)) // convert to list
+
   def safeAttributeSDouble[F[_]: Sync, A](get: => CaAttribute[JDouble]): F[Option[Double]] =
     Nested(safeAttribute(get)).map(_.toDouble).value
 
@@ -412,11 +418,14 @@ object EpicsUtil {
   def safeAttributeList[F[_]: Sync, A](get: => CaAttribute[A]): F[Option[List[A]]] =
     Sync[F].delay(Option(get.values.asScala.toList))
 
-  def safeAttributeSListSInt[F[_]: Sync, A](get: => CaAttribute[JInt]): F[Option[List[Int]]] =
+  def safeAttributeSListSInt[F[_]: Sync](get: => CaAttribute[JInt]): F[Option[List[Int]]] =
     Nested(safeAttributeList(get)).map(_.map(_.toInt)).value
 
-  def safeAttributeSListSDouble[F[_]: Sync, A](get: => CaAttribute[JDouble]): F[Option[List[Double]]] =
+  def safeAttributeSListSDouble[F[_]: Sync](get: => CaAttribute[JDouble]): F[Option[List[Double]]] =
     Nested(safeAttributeList(get)).map(_.map(_.toDouble)).value
+
+  def safeAttributeSListSDoubleF[F[_]: Sync](name: String, get: => CaAttribute[JDouble]): F[List[Double]] =
+    Nested(safeAttributeListF(name, get)).map(_.toDouble).value
 
   def smartSetParam[A: Eq](v: A, get: => Option[A], set: SeqAction[Unit]): List[SeqAction[Unit]] =
     if(get =!= v.some) List(set) else Nil
