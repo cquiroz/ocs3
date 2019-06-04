@@ -58,8 +58,8 @@ class SeqTranslateSpec extends FlatSpec {
       1,
       config,
       Set(GmosS),
-      SequenceGen.StepActionsGen(List(), Map(), _ => List(observeActions(Action.Idle)))
-    ))
+      SequenceGen.StepActionsGen(List(), Map(), _ => List(observeActions(Action.Idle))), false)
+    )
   )
 
   private val baseState: EngineState = (ODBSequencesLoader.loadSequenceEndo(seqId, seqg) >>>

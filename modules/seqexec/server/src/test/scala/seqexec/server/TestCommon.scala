@@ -113,7 +113,7 @@ object TestCommon {
     Instrument.F2,
     List(SequenceGen.PendingStepGen(1, Map(), Set.empty, SequenceGen.StepActionsGen(List(),
       Map(), _ => List(List(pendingAction(Instrument.F2)))
-    )))
+    ), false))
   )
 
   def sequenceNSteps(id: Observation.Id, n: Int): SequenceGen[IO] = SequenceGen[IO](
@@ -122,7 +122,7 @@ object TestCommon {
     Instrument.F2,
     List.range(1, n).map(SequenceGen.PendingStepGen(_, Map(), Set.empty, SequenceGen.StepActionsGen(List(),
       Map(), _ => List(List(pendingAction(Instrument.F2)))
-    )))
+    ), false))
   )
 
   def sequenceWithResources(id: Observation.Id, ins: Instrument, resources: Set[Resource]): SequenceGen[IO] = SequenceGen[IO](
@@ -133,12 +133,14 @@ object TestCommon {
       SequenceGen.PendingStepGen(
         1, Map(), resources, SequenceGen.StepActionsGen(List(), resources.map(r => r ->pendingAction(r)).toMap,
           _ =>List()
-        )
+        ),
+        false
       ),
       SequenceGen.PendingStepGen(
         2, Map(), resources, SequenceGen.StepActionsGen(List(), resources.map(r => r ->pendingAction(r)).toMap,
           _ =>List()
-        )
+        ),
+        false
       )
     )
   )

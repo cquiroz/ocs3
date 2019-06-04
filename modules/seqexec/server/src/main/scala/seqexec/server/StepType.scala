@@ -8,6 +8,7 @@ import seqexec.model.enum.Instrument
 sealed trait StepType {
   val instrument: Instrument
   val includesObserve: Boolean = true
+  val breakpointOn: Boolean = false
 }
 
 final case class CelestialObject(override val instrument: Instrument) extends StepType
@@ -20,4 +21,5 @@ final case class DarkOrBias(override val instrument: Instrument) extends StepTyp
 case object AlignAndCalib extends StepType {
   override val instrument: Instrument = Instrument.Gpi
   override val includesObserve: Boolean = false
+  override val breakpointOn: Boolean = true
 }

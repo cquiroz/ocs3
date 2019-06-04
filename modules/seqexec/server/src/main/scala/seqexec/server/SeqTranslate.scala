@@ -4,7 +4,7 @@
 package seqexec.server
 
 import cats._
-import cats.data.{EitherT, NonEmptySet, Reader}
+import cats.data.{NonEmptySet, Reader}
 import cats.effect.{Concurrent, IO, Timer}
 import cats.effect.Sync
 import cats.effect.LiftIO
@@ -25,6 +25,7 @@ import org.log4s._
 import seqexec.engine._
 import seqexec.model.enum.{Instrument, Resource}
 import seqexec.model.{ActionType, StepState}
+import seqexec.model.StepId
 import seqexec.model.dhs.ImageFileId
 import seqexec.server.ConfigUtilOps._
 import seqexec.server.SeqexecFailure.{Unexpected, UnrecognizedInstrument}
@@ -66,23 +67,21 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
 
   private def sendDataStart[F[_]: LiftIO: Monad](obsId: Observation.Id, imageFileId: ImageFileId, dataId: String): SeqActionF[F, Unit] =
     systems.odb.datasetStart(obsId, dataId, imageFileId).toF[F].ifM(
-      SeqActionF.void[F],
-      SeqActionF.raiseException[F, Unit](SeqexecFailure.Unexpected("Unable to send DataStart message to ODB."))
+      SeqActionF.void,
+      SeqActionF.raiseException(SeqexecFailure.Unexpected("Unable to send DataStart message to ODB."))
     )
 
-  private def sendDataEnd(obsId: Observation.Id, imageFileId: ImageFileId, dataId: String): SeqAction[Unit] =
-    systems.odb.datasetComplete(obsId, dataId, imageFileId).flatMap{
-      if(_) SeqAction.void
-      else SeqAction.fail(SeqexecFailure.Unexpected("Unable to send DataEnd message to ODB."))
-    }
+  private def sendDataEnd[F[_]: LiftIO: Monad](obsId: Observation.Id, imageFileId: ImageFileId, dataId: String): SeqActionF[F, Unit] =
+    systems.odb.datasetComplete(obsId, dataId, imageFileId).toF[F].ifM(
+      SeqActionF.void,
+      SeqActionF.raiseException(SeqexecFailure.Unexpected("Unable to send DataEnd message to ODB.")))
 
-  private def sendObservationAborted(obsId: Observation.Id, imageFileId: ImageFileId): SeqAction[Unit] =
-    systems.odb.obsAbort(obsId, imageFileId).flatMap{
-      if(_) SeqAction.void
-      else SeqAction.fail(SeqexecFailure.Unexpected("Unable to send ObservationAborted message to ODB."))
-    }
+  private def sendObservationAborted[F[_]: LiftIO: Monad](obsId: Observation.Id, imageFileId: ImageFileId): SeqActionF[F, Unit] =
+    systems.odb.obsAbort(obsId, imageFileId).toF[F].ifM(
+      SeqActionF.void,
+      SeqActionF.raiseException(SeqexecFailure.Unexpected("Unable to send ObservationAborted message to ODB.")))
 
-  private def info(msg: => String): SeqAction[Unit] = EitherT.right(IO.apply(Log.info(msg)))
+  private def info[F[_]: Sync](msg: => String): SeqActionF[F, Unit] = SeqActionF.liftF(Sync[F].delay(Log.info(msg)))
 
   //scalastyle:off
   private def observe(config: Config, obsId: Observation.Id, inst: InstrumentSystem[IO],
@@ -90,19 +89,19 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
                      (ctx: HeaderExtraData)
                      (implicit ev: Concurrent[IO]): Stream[IO, Result]
   = {
-    val dataId: SeqAction[String] = SeqAction.either(
+    def dataId[F[_]: Sync]: SeqActionF[F, String] = SeqActionF.either(
       config.extractAs[String](OBSERVE_KEY / DATA_LABEL_PROP).leftMap(e =>
       SeqexecFailure.Unexpected(ConfigUtilOps.explain(e))))
 
-    def notifyObserveStart: SeqAction[Unit] = otherSys.map(_.notifyObserveStart).sequence.void
+    def notifyObserveStart[F[_]: Sync: LiftIO]: SeqActionF[F, Unit] = otherSys.map(_.notifyObserveStart).sequence.void.toF[F]
 
     // endObserve must be sent to the instrument too.
-    def notifyObserveEnd: SeqAction[Unit] = (inst +: otherSys).map(_.notifyObserveEnd).sequence.void
+    def notifyObserveEnd[F[_]: Sync: LiftIO]: SeqActionF[F, Unit] = (inst +: otherSys).map(_.notifyObserveEnd).sequence.void.toF[F]
 
     def closeImage[F[_]: LiftIO](id: ImageFileId): SeqActionF[F, Unit] =
       SeqActionF.embed(inst.keywordsClient.closeImage(id))
 
-    def doObserve(fileId: ImageFileId): SeqAction[Result] =
+    def doObserve[F[_]](fileId: ImageFileId): SeqAction[Result] =
       for {
         d   <- dataId
         _   <- sendDataStart(obsId, fileId, d)
@@ -114,12 +113,12 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
         ret <- observeTail(fileId, d)(r)
       } yield ret
 
-    def observeTail(id: ImageFileId, dataId: String)(r: ObserveCommand.Result): SeqAction[Result] = {
-      def okTail(stopped: Boolean): SeqAction[Result] = for {
-        _ <- notifyObserveEnd
-        _ <- headers(ctx).reverseMap(_.sendAfter(id)).sequence.embed
-        _ <- closeImage(id)
-        _ <- sendDataEnd(obsId, id, dataId)
+    def observeTail(id: ImageFileId, dataId: String)(r: ObserveCommand.Result): SeqActionF[IO, Result] = {
+      def okTail[F[_]: Sync: LiftIO](stopped: Boolean): SeqActionF[F, Result] = for {
+        _ <- notifyObserveEnd[F]
+        _ <- SeqActionF.embed[F, Unit](headers(ctx).reverseMap(_.sendAfter(id)).sequence.void)
+        _ <- closeImage[F](id)
+        _ <- sendDataEnd[F](obsId, id, dataId)
       } yield if (stopped) Result.OKStopped(Response.Observed(id)) else Result.OK(Response.Observed(id))
 
       val successTail: SeqAction[Result] = okTail(stopped = false)
@@ -156,11 +155,16 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
     }
   }
 
-  private def step(obsId: Observation.Id, i: Int, config: Config, nextToRun: Int,
-                   datasets: Map[Int, ExecutedDataset])(
-                     implicit cio: Concurrent[IO],
-                              tio: Timer[IO]
-                   ): TrySeq[SequenceGen.StepGen[IO]] = {
+  private def step(
+    obsId: Observation.Id,
+    stepId: StepId,
+    config: Config,
+    nextToRun: Int,
+    datasets: Map[Int, ExecutedDataset],
+    previousStepType: Option[StepType])(
+    implicit cio: Concurrent[IO],
+             tio: Timer[IO]
+  ): TrySeq[SequenceGen.StepGen[IO]] = {
     def buildStep(
       inst: InstrumentSystem[IO],
       sys: List[System[IO]],
@@ -168,7 +172,7 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
       stepType: StepType
     ): SequenceGen.StepGen[IO] = {
       val initialStepExecutions: List[List[Action[IO]]] =
-        (i === 0 && stepType.includesObserve).option {
+        (stepId === 0 && stepType.includesObserve).option {
           List(List(systems.odb.sequenceStart(obsId, "")
             .as(Response.Ignored).toAction(ActionType.Undefined)))
         }.orEmpty
@@ -189,21 +193,24 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
         }.orEmpty
 
       extractStatus(config) match {
-        case StepState.Pending if i >= nextToRun => SequenceGen.PendingStepGen(
-          i,
+        case StepState.Pending if stepId >= nextToRun =>
+        println(s"Pending $stepId $stepType $previousStepType")
+        SequenceGen.PendingStepGen(
+          stepId,
           config.toStepConfig,
           calcResources(sys),
-          StepActionsGen(initialStepExecutions, configs, rest)
+          StepActionsGen(initialStepExecutions, configs, rest),
+          previousStepType.map(_.breakpointOn).getOrElse(false)
         )
         case StepState.Pending                   => SequenceGen.SkippedStepGen(
-          i,
+          stepId,
           config.toStepConfig
         )
         // TODO: This case should be for completed Steps only. Fail when step status is unknown.
         case _                                   => SequenceGen.CompletedStepGen(
-          i,
+          stepId,
           config.toStepConfig,
-          datasets.get(i + 1).map(_.filename)
+          datasets.get(stepId + 1).map(_.filename)
         )
       }
     }
@@ -236,8 +243,10 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
 
     val nextToRun = configs.map(extractStatus).lastIndexWhere(s => s === StepState.Completed || s === StepState.Skipped) + 1
 
+    val indexedConfigs = configs.zipWithIndex.map(_.swap).toMap
+
     val steps = configs.zipWithIndex.map {
-      case (c, i) => step(obsId, i, c, nextToRun, sequence.datasets)
+      case (c, i) => step(obsId, i, c, nextToRun, sequence.datasets, indexedConfigs.get(i - 1).flatMap(calcStepType(_).toOption))
     }.separate
 
     val instName = configs
@@ -249,17 +258,14 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
       steps match {
         case (errs, ss) => (
           errs,
-          if (ss.isEmpty)
-            None
-          else
-            Some(
-              SequenceGen(
-                obsId,
-                sequence.title,
-                i,
-                ss
-              )
+          ss.headOption.map { _ =>
+            SequenceGen(
+              obsId,
+              sequence.title,
+              i,
+              ss
             )
+          }
         )
       })
   }
