@@ -3,13 +3,20 @@
 
 package seqexec.web.client.components
 
+import cats.implicits._
 import diode.react.ReactPot._
 import japgolly.scalajs.react.vdom.html_<^._
 import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react.ScalaComponent
+import japgolly.scalajs.react.React
 import japgolly.scalajs.react.component.Scala.Unmounted
 import japgolly.scalajs.react.Reusability
 import gem.enum.Site
+import react.common.implicits._
+import react.semanticui.elements.divider._
+import react.semanticui.collections.grid._
+import react.semanticui.widths._
+import react.common._
 import react.common.implicits._
 import seqexec.web.client.circuit.SeqexecCircuit
 import seqexec.web.client.model.Pages._
@@ -26,10 +33,8 @@ object AppTitle {
     .builder[Props]("SeqexecTitle")
     .stateless
     .render_P(p =>
-      <.h4(
-        ^.cls := "ui horizontal divider header",
-        SeqexecStyles.titleRow,
-        SeqexecStyles.notInMobile,
+      Divider(Divider.props(as = "h4", horizontal = true,
+        clazz = Css("header") |+| SeqexecStyles.titleRow |+| SeqexecStyles.notInMobile),
         s"Seqexec ${p.site.shortName}",
         p.ws.ws.renderPending(
           _ =>
@@ -60,38 +65,34 @@ object SeqexecMain {
     .builder[Props]("SeqexecUI")
     .stateless
     .render_P(p =>
-      <.div(
-        <.div(
-          ^.cls := "ui horizontally padded grid",
-          <.div(
-            ^.cls := "ui row",
-            SeqexecStyles.shorterRow
-          ),
+      React.Fragment(
+        Grid(Grid.props(padded = GridPadded.Horizontally),
+          GridRow(GridRow.props(
+            clazz = SeqexecStyles.shorterRow)),
           wsConnect(ws => AppTitle(AppTitle.Props(p.site, ws()))),
-          <.div(
-            ^.cls := "ui row",
-            SeqexecStyles.shorterRow,
-            SeqexecStyles.queueAreaRow,
-            <.div(
-              ^.cls := "sixteen wide mobile ten wide tablet ten wide computer column",
-              SeqexecStyles.queueArea,
-              SessionQueueTableSection(p.ctl).when(true)
+          GridRow(GridRow.props(
+            clazz = SeqexecStyles.shorterRow |+| SeqexecStyles.queueAreaRow),
+            GridColumn(GridColumn.props(
+              mobile = Sixteen,
+              tablet = Ten,
+              computer = Ten,
+              clazz = SeqexecStyles.queueArea),
+              SessionQueueTableSection(p.ctl)
             ),
-            <.div(
-              ^.cls := "six wide column tablet computer only",
-              SeqexecStyles.headerSideBarArea,
+            GridColumn(GridColumn.props(
+              tablet = Six,
+              computer = Six,
+              only = GridOnly.Tablet,
+              clazz = SeqexecStyles.headerSideBarArea),
               headerSideBarConnect(HeadersSideBar.apply)
             )
           ),
-          <.div(
-            ^.cls := "ui row",
-            SeqexecStyles.shorterRow,
-            TabsArea(TabsArea.Props(p.ctl, p.site)).when(true)
+          GridRow(GridRow.props(
+            clazz = SeqexecStyles.shorterRow),
+            TabsArea(TabsArea.Props(p.ctl, p.site))
           ),
-          <.div(
-            ^.cls := "ui row",
-            // Add margin to avoid covering the footer
-            SeqexecStyles.logArea,
+          GridRow(GridRow.props(
+            clazz = SeqexecStyles.logArea),
             logConnect(l => LogArea(p.site, l()))
           )
         ),

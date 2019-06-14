@@ -7,12 +7,15 @@ import seqexec.web.client.actions.Logout
 import seqexec.web.client.actions.OpenLoginBox
 import seqexec.web.client.model.ClientStatus
 import seqexec.web.client.circuit.SeqexecCircuit
-import seqexec.web.client.semanticui.Size
-import seqexec.web.client.semanticui.elements.button.Button
-import seqexec.web.client.semanticui.elements.icon.Icon.IconSignOut
-import react.common.implicits._
+import react.semanticui.collections.menu.Menu
+import react.semanticui.elements.button.Button
+import react.semanticui.elements.header.Header
+import react.semanticui.views.item.Item
+import react.semanticui.sizes._
+import seqexec.web.client.icons._
 import japgolly.scalajs.react.component.Scala.Unmounted
 import japgolly.scalajs.react.Callback
+import japgolly.scalajs.react.React
 import japgolly.scalajs.react.ScalaComponent
 import japgolly.scalajs.react.vdom.html_<^._
 
@@ -32,16 +35,16 @@ object ControlMenu {
     SeqexecCircuit.dispatchCB(Logout)
 
   private def loginButton(enabled: Boolean) =
-    Button(Button.Props(size     = Size.Medium,
+    Button(Button.props(size     = Medium,
                         onClick  = openLogin,
                         disabled = !enabled,
                         inverted = true),
            "Login")
 
   private def logoutButton(text: String, enabled: Boolean) =
-    Button(Button.Props(size     = Size.Medium,
+    Button(Button.props(size     = Medium,
                         onClick  = logout,
-                        icon     = Some(IconSignOut),
+                        icon     = IconSignOut,
                         disabled = !enabled,
                         inverted = true),
            text)
@@ -51,48 +54,33 @@ object ControlMenu {
     .stateless
     .render_P { p =>
       val status = p.status
-      <.div(
-        ^.cls := "ui secondary right menu",
-        SeqexecStyles.notInMobile,
-        status.u.fold(
-          <.div(
-            ^.cls := "ui item",
-            soundConnect(x => SoundControl(SoundControl.Props(x()))),
-            loginButton(status.isConnected)
-          )
-        )(
-          u =>
-            <.div(
-              ^.cls := "ui secondary right menu",
-              <.div(
-                ^.cls := "ui header item",
-                SeqexecStyles.notInMobile,
-                u.displayName
+      Menu(Menu.props(secondary = true, className = "right"),
+        status.u
+          .map { user =>
+            React.Fragment(
+              Header(Header.props(className = "item", clazz = SeqexecStyles.notInMobile),
+                user.displayName
               ),
-              <.div(
-                ^.cls := "ui header item",
-                SeqexecStyles.onlyMobile,
+              Header(Header.props(className = "item", clazz = SeqexecStyles.onlyMobile),
                 // Ideally we'd do this with css text-overflow but it is not
                 // working properly inside a header item, let's abbreviate in code
-                u.displayName
+                user.displayName
                   .split("\\s")
                   .headOption
                   .map(_.substring(0, 10) + "...")
                   .getOrElse[String]("")
               ),
-              <.div(
-                ^.cls := "ui item",
-                SeqexecStyles.notInMobile,
-                soundConnect(x => SoundControl(SoundControl.Props(x()))),
-                logoutButton("Logout", status.isConnected)
-              ),
-              <.div(
-                ^.cls := "ui item",
-                SeqexecStyles.onlyMobile,
-                logoutButton("", status.isConnected)
-              )
+              Item(Item.props(clazz = SeqexecStyles.notInMobile),
+                   soundConnect(x => SoundControl(SoundControl.Props(x()))),
+                   logoutButton("Logout", status.isConnected)),
+              Item(Item.props(clazz = SeqexecStyles.onlyMobile),
+                   logoutButton("", status.isConnected))
             )
-        )
+          }
+          .getOrElse {
+            Item(soundConnect(x => SoundControl(SoundControl.Props(x()))),
+                 loginButton(status.isConnected)): VdomNode
+          }
       )
     }
     .build

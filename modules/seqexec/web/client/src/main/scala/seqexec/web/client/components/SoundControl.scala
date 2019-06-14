@@ -3,19 +3,18 @@
 
 package seqexec.web.client.components
 
-import cats.implicits._
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.html_<^._
 import japgolly.scalajs.react.component.Scala.Unmounted
 import japgolly.scalajs.react.Reusability
+import react.semanticui.elements.button.Button
+import react.semanticui.sizes._
 import seqexec.web.client.circuit.SeqexecCircuit
 import seqexec.web.client.actions.FlipSoundOnOff
 import seqexec.web.client.model.SoundSelection
-import seqexec.web.client.semanticui.Size
-import seqexec.web.client.semanticui.elements.button.Button
-import seqexec.web.client.semanticui.elements.icon.Icon._
 import seqexec.web.client.services.WebpackResources._
 import seqexec.web.client.reusability._
+import seqexec.web.client.icons._
 import web.client.Audio
 
 /**
@@ -45,9 +44,9 @@ object SoundControl {
         case SoundSelection.SoundOff => Callback(SoundOn.play())
       }
       Button(
-        Button.Props(icon     = icon.some,
+        Button.props(icon     = icon,
                      inverted = true,
-                     size     = Size.Medium,
+                     size     = Medium,
                      onClick  = soundClick *> flipSound))
     }
     .configure(Reusability.shouldComponentUpdate)

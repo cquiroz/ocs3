@@ -80,7 +80,7 @@ object Settings {
     val scalaJSReactClipboard   = "0.8.0"
     val scalaJSReactDraggable   = "0.4.2"
     val scalaJSReactSortable    = "0.2.1"
-    val reactSemanticUI         = "0.1.4"
+    val reactSemanticUI         = "0.1.6"
 
     // Scala libraries
     val catsEffectVersion       = "1.3.1"
@@ -235,6 +235,7 @@ object Settings {
     val ScalaJSReactDraggable   = Def.setting("io.github.cquiroz.react" %%% "react-draggable"    % LibraryVersions.scalaJSReactDraggable)
     val ScalaJSReactSortable    = Def.setting("io.github.cquiroz.react" %%% "react-sortable-hoc" % LibraryVersions.scalaJSReactSortable)
     val ScalaJSReactClipboard   = Def.setting("io.github.cquiroz.react" %%% "react-clipboard"    % LibraryVersions.scalaJSReactClipboard)
+    val ReactSemanticUI         = Def.setting("io.github.cquiroz.react" %%% "react-semantic-ui"    % LibraryVersions.reactSemanticUI)
     val JQuery                  = Def.setting("org.querki"              %%% "jquery-facade"      % LibraryVersions.scalaJQuery)
     val BooPickle               = Def.setting("io.suzaku"               %%% "boopickle"          % LibraryVersions.booPickle)
     val JavaTimeJS              = Def.setting("io.github.cquiroz"       %%% "scala-java-time"    % LibraryVersions.javaTimeJS)

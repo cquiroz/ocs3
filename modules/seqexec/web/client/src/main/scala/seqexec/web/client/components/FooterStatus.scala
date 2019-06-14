@@ -8,7 +8,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.html_<^._
 import japgolly.scalajs.react.component.Scala.Unmounted
 import japgolly.scalajs.react.Reusability
-import react.common.implicits._
+import react.semanticui.elements.header.Header
 import seqexec.web.client.model.ClientStatus
 import seqexec.web.client.circuit.SeqexecCircuit
 import seqexec.web.client.reusability._
@@ -27,14 +27,15 @@ object FooterStatus {
   private val component = ScalaComponent
     .builder[Props]("FooterStatus")
     .stateless
-    .render_P(
-      p =>
+    .render_P(p =>
         React.Fragment(
-          <.div(SeqexecStyles.notInMobile,
-                ^.cls := s"ui header item sub",
-                wsConnect(ConnectionState.apply).unless(p.status.isConnected)),
-          <.div(^.cls := s"ui header item sub",
-                gcConnect(GuideConfigStatus.apply).when(p.status.isConnected)),
+          if (p.status.isConnected) {
+            Header(Header.props(className = "item", sub = true),
+              gcConnect(GuideConfigStatus.apply)),
+          } else {
+            Header(Header.props(className = "item", clazz = SeqexecStyles.notInMobile, sub = true),
+              wsConnect(ConnectionState.apply))
+          },
           ControlMenu(p.status)
         )
     )

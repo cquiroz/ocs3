@@ -10,9 +10,11 @@ import japgolly.scalajs.react.vdom.html_<^._
 import japgolly.scalajs.react.component.Scala.Unmounted
 import japgolly.scalajs.react.Reusability
 import react.common.implicits._
+import react.semanticui.colors._
+import react.semanticui.elements.header.Header
 import seqexec.web.client.model.WebSocketConnection
-import seqexec.web.client.semanticui.elements.icon.Icon._
 import seqexec.web.client.reusability._
+import seqexec.web.client.icons._
 
 /**
   * Alert message when the connection disappears
@@ -35,19 +37,18 @@ object ConnectionState {
     .stateless
     .render_P(
       p =>
-        <.div(
-          ^.cls := "ui header item sub",
+        Header(Header.props(className = "item", sub = true),
           p.u.ws.renderPending(
             _ =>
               <.div(
-                IconAttention.copyIcon(color = Option("red")),
+                IconAttention.color(Red),
                 <.span(
                   SeqexecStyles.errorText,
                   s"Connection lost, retrying in ${formatTime(p.u.nextAttempt)} [s] ..."
                 )
               )
+            )
           )
-        )
     )
     .configure(Reusability.shouldComponentUpdate)
     .build

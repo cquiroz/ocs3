@@ -75,36 +75,6 @@ object SemanticUITab {
 
 }
 
-object SemanticUIVisibility {
-
-  @js.native
-  @JSImport("semantic-ui-visibility", JSImport.Namespace)
-  private object SemanticVisibilityModule extends js.Any
-
-  SemanticVisibilityModule
-
-  @js.native
-  trait JsVisiblityOptions extends js.Object
-
-  object JsVisiblityOptions extends JsVisiblityOptionBuilder(noOpts)
-
-  class JsVisiblityOptionBuilder(val dict: OptMap)
-      extends JSOptionBuilder[JsVisiblityOptions, JsVisiblityOptionBuilder](
-        new JsVisiblityOptionBuilder(_)) {
-    def visibilityType(t: String): JsVisiblityOptionBuilder = jsOpt("type", t)
-    def offset(t:         Int): JsVisiblityOptionBuilder    = jsOpt("offset", t)
-  }
-
-  @js.native
-  trait SemanticVisibility extends JQuery {
-    def visibility(o: JsVisiblityOptions): this.type
-  }
-
-  implicit def jq2Semantic($ : JQuery): SemanticVisibility =
-    $.asInstanceOf[SemanticVisibility]
-
-}
-
 object SemanticUIProgress {
 
   @js.native
