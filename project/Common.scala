@@ -14,25 +14,6 @@ object Common {
     initialCommands += "jline.TerminalFactory.get.init\n",
 
     scalaVersion                            := Settings.LibraryVersions.scalaVersion,
-    scalacOptions                          ++= Settings.Definitions.scalacOptions,
-    scalacOptions in (Compile, console)     ~= (_.filterNot(Set(
-      "-Xfatal-warnings",
-      "-Ywarn-unused:imports"
-    ))),
-    scalacOptions in (Compile, doc) ++= Seq(
-      "-groups",
-      "-sourcepath", (baseDirectory in LocalRootProject).value.getAbsolutePath,
-      "-skip-packages", "scalaz",
-      "-doc-title", "Gem",
-      "-doc-version", version.value
-    ),
-    // These sbt-header settings can't be set in ThisBuild for some reason
-    headerMappings                          := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
-    headerLicense                           := Some(HeaderLicense.Custom(
-      """|Copyright (c) 2016-2019 Association of Universities for Research in Astronomy, Inc. (AURA)
-         |For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
-         |""".stripMargin
-    )),
     // Common libraries
     libraryDependencies                    ++= TestLibs.value,
     // Don't build javadoc when we're packaging the docker image.
@@ -54,15 +35,6 @@ object Common {
       organization = "com.github.julien-truffaut",
       revision = sbt.io.GlobFilter(Settings.LibraryVersions.monocleVersion.replace("-cats", "*"))
     )
-  )
-
-  lazy val commonJSSettings = commonSettings ++ Seq(
-    scalacOptions ~= (_.filterNot(Set(
-      // Allows a certain reduction on the ouput js file
-      "-Xcheckinit"
-    ))),
-    // activate the ScalaJS defined annotation by default
-    scalacOptions       += "-P:scalajs:sjsDefinedByDefault"
   )
 
   lazy val flywaySettings = Seq(

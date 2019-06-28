@@ -9,7 +9,7 @@ import sbtcrossproject.crossProject
 import sbtcrossproject.CrossType
 import com.typesafe.sbt.packager.docker._
 
-name := Settings.Definitions.name
+name := Settings.name
 
 organization in Global := "edu.gemini.ocs"
 
@@ -87,18 +87,6 @@ resolvers in ThisBuild +=
 
 updateOptions in ThisBuild := updateOptions.value.withLatestSnapshots(false)
 
-// // Before printing the prompt check git to make sure all is well.
-// shellPrompt in ThisBuild := { state =>
-//   if (version.value != imageManifest.formatVersion) {
-//     import scala.Console.{ RED, RESET }
-//     print(RED)
-//     println(s"Computed version doesn't match the filesystem anymore.")
-//     println(s"Please `reload` to get back in sync.")
-//     print(RESET)
-//   }
-//   "> "
-// }
-
 ///////////////
 // Root project
 ///////////////
@@ -157,7 +145,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++=
       Seq(JavaTimeJS.value, GeminiLocales.value)
   )
-  .jsSettings(commonJSSettings)
+  .jsSettings(gspScalaJsSettings: _*)
   .jvmSettings(
     libraryDependencies += Fs2
   )
@@ -193,7 +181,7 @@ lazy val json = crossProject(JVMPlatform, JSPlatform)
   .settings(
     libraryDependencies ++= Circe.value
   )
-  .jsSettings(commonJSSettings)
+  .jsSettings(gspScalaJsSettings: _*)
   .jvmConfigure(
     _.enablePlugins(AutomateHeaderPlugin)
   )
@@ -213,7 +201,7 @@ lazy val ocs2_api = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/ocs2_api"))
   .dependsOn(core)
   .settings(commonSettings)
-  .jsSettings(commonJSSettings)
+  .jsSettings(gspScalaJsSettings: _*)
 
 lazy val ocs2_api_JVM = ocs2_api.jvm.enablePlugins(AutomateHeaderPlugin)
 
@@ -361,7 +349,7 @@ lazy val web_client_common = project
   .enablePlugins(AutomateHeaderPlugin)
   .enablePlugins(ScalaJSPlugin)
   .enablePlugins(GitBranchPrompt)
-  .settings(commonJSSettings: _*)
+  .settings(gspScalaJsSettings: _*)
   .settings(
     scalacOptions ~= (_.filterNot(Set(
       // By necessity facades will have unused params
@@ -392,7 +380,7 @@ lazy val seqexec_web_shared = crossProject(JVMPlatform, JSPlatform)
     addCompilerPlugin(Plugins.paradisePlugin)
   )
   .jvmSettings(commonSettings)
-  .jsSettings(commonJSSettings)
+  .jsSettings(gspScalaJsSettings: _*)
   .jsSettings(
     libraryDependencies += Log4s.value,
   )
@@ -428,7 +416,7 @@ lazy val seqexec_web_client = project.in(file("modules/seqexec/web/client"))
   .enablePlugins(AutomateHeaderPlugin)
   .enablePlugins(GitBranchPrompt)
   .disablePlugins(RevolverPlugin)
-  .settings(commonJSSettings: _*)
+  .settings(gspScalaJsSettings: _*)
   .settings(
     // Needed for Monocle macros
     addCompilerPlugin(Plugins.paradisePlugin),
@@ -551,7 +539,7 @@ lazy val seqexec_model = crossProject(JVMPlatform, JSPlatform)
   )
   .jvmSettings(
     commonSettings)
-  .jsSettings(commonJSSettings)
+  .jsSettings(gspScalaJsSettings: _*)
   .jsSettings(
     // And add a custom one
     libraryDependencies += JavaTimeJS.value
