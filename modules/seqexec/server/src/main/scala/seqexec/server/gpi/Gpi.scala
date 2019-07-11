@@ -18,8 +18,11 @@ import java.lang.{ Boolean => JBoolean }
 import java.lang.{ Double => JDouble }
 import java.lang.{ Integer => JInt }
 import gem.enum.LightSinkName
+import seqexec.engine.Action
+import seqexec.engine.Result
 import seqexec.model.dhs.ImageFileId
 import seqexec.model.enum.Instrument
+import seqexec.model.enum.ObserveCommandResult
 import seqexec.server.ConfigUtilOps._
 import seqexec.server._
 import seqexec.server.keywords.GdsClient
@@ -53,22 +56,36 @@ final case class Gpi[F[_]: Sync: Timer](controller: GpiController[F])
 
   override def calcStepType(config: Config): Either[SeqexecFailure, StepType] =
     if (Gpi.isAlignAndCalib(config)) {
-      AlignAndCalib.asRight
+      StepType.AlignAndCalib.asRight
     } else {
       SequenceConfiguration.calcStepType(config)
     }
 
+  override def observeActions(stepType: StepType, result: Stream[F, Result[F]]): List[List[Action[F]]] =
+    if (stepType === StepType.AlignAndCalib) {
+      Nil
+    } else {
+      SequenceActions.observeActions(result)
+    }
+
+  override def initialStepAction(stepType: StepType, action: Action[F]): List[List[Action[F]]] =
+    if (stepType === StepType.AlignAndCalib) {
+      Nil
+    } else {
+      List(List(action))
+    }
+
   override val observeControl: InstrumentSystem.ObserveControl[F] =
-    InstrumentSystem.Uncontrollable()
+    InstrumentSystem.Uncontrollable
 
   override def observe(
     config: Config
-  ): SeqObserveF[F, ImageFileId, ObserveCommand.Result] =
+  ): SeqObserveF[F, ImageFileId, ObserveCommandResult] =
     Reader { fileId =>
       SeqActionF.embedF(calcObserveTime(config).flatMap { ot =>
         controller
           .observe(fileId, timeoutTolerance + ot)
-          .as(ObserveCommand.Result.Success: ObserveCommand.Result)
+          .as(ObserveCommandResult.Success: ObserveCommandResult)
       })
     }
 

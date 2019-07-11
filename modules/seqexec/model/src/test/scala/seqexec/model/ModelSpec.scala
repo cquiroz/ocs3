@@ -76,4 +76,5 @@ final class ModelSpec extends CatsSuite {
   checkAll("Eq[M1GuideConfig]", EqTests[M1GuideConfig].eqv)
   checkAll("Eq[TelescopeGuideConfig]", EqTests[TelescopeGuideConfig].eqv)
   checkAll("Eq[BatchCommandState]", EqTests[BatchCommandState].eqv)
+  checkAll("Eq[ObserveCommandResult]", EqTests[ObserveCommandResult].eqv)
 }

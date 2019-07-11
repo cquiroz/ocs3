@@ -19,7 +19,8 @@ import edu.gemini.spModel.gemini.niri.Niri.BuiltinROI
 import org.log4s.getLogger
 import scala.concurrent.ExecutionContext
 import seqexec.model.dhs.ImageFileId
-import seqexec.server.{EpicsCodex, EpicsCommand, ObserveCommand, Progress, ProgressUtil, SeqexecFailure}
+import seqexec.model.enum.ObserveCommandResult
+import seqexec.server.{EpicsCodex, EpicsCommand, Progress, ProgressUtil, SeqexecFailure}
 import seqexec.server.EpicsUtil._
 import seqexec.server.EpicsCodex._
 import seqexec.server.niri.NiriController._
@@ -313,7 +314,7 @@ object NiriControllerEpics extends NiriEncoders {
         IO(Log.debug("Completed NIRI configuration"))
     }
 
-    override def observe(fileId: ImageFileId, cfg: DCConfig): IO[ObserveCommand.Result] =
+    override def observe(fileId: ImageFileId, cfg: DCConfig): IO[ObserveCommandResult] =
       IO(Log.info("Start NIRI observe")) *>
         failOnDHSNotConected *>
         failOnArrayNotActive *>

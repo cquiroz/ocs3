@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit.MILLISECONDS
 import edu.gemini.epics.acm._
 import mouse.boolean._
 import org.log4s._
+import seqexec.model.enum.ObserveCommandResult
 import seqexec.server.SeqexecFailure.SeqexecException
 import seqexec.server.SeqexecFailure.NullEpicsError
 import squants.Time
@@ -118,21 +119,19 @@ object EpicsCommand {
 }
 
 trait ObserveCommand {
-  import ObserveCommand._
-
   protected val cs: Option[CaCommandSender]
   protected val os: Option[CaApplySender]
 
-  def post[F[_]: Async]: F[Result] =
-    Async[F].async[Result] { (f: Either[Throwable, Result] => Unit) =>
+  def post[F[_]: Async]: F[ObserveCommandResult] =
+    Async[F].async[ObserveCommandResult] { (f: Either[Throwable, ObserveCommandResult] => Unit) =>
       os.map { oos =>
         oos.postCallback {
           new CaCommandListener {
-            override def onSuccess(): Unit = f(Result.Success.asRight)
-            override def onPause(): Unit = f(Result.Paused.asRight)
+            override def onSuccess(): Unit = f(ObserveCommandResult.Success.asRight)
+            override def onPause(): Unit = f(ObserveCommandResult.Paused.asRight)
             override def onFailure(cause: Exception): Unit = cause match {
-              case _: CaObserveStopped => f(Result.Stopped.asRight)
-              case _: CaObserveAborted => f(Result.Aborted.asRight)
+              case _: CaObserveStopped => f(ObserveCommandResult.Stopped.asRight)
+              case _: CaObserveAborted => f(ObserveCommandResult.Aborted.asRight)
               case _                   => f(cause.asLeft)
             }
           }
@@ -148,24 +147,6 @@ trait ObserveCommand {
     Sync[F].delay {
       cs.map(_.getApplySender).map(_.setTimeout(t.toMilliseconds.toLong, MILLISECONDS))
     }.void
-}
-
-object ObserveCommand {
-  sealed trait Result extends Product with Serializable
-
-  object Result {
-    case object Success extends Result
-    case object Paused extends Result
-    case object Stopped extends Result
-    case object Aborted extends Result
-
-
-    /** @group Typeclass Instances */
-    implicit val ObserveResultEnumerated: Enumerated[Result] =
-      Enumerated.of(Success, Paused, Stopped, Aborted)
-  }
-
-  implicit val equal: Eq[Result] = Eq.fromUniversalEquals
 }
 
 object EpicsCodex {

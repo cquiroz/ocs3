@@ -18,11 +18,16 @@ import edu.gemini.spModel.guide.StandardGuideOptions
 import edu.gemini.spModel.obscomp.InstConstants.{EXPOSURE_TIME_PROP, _}
 import edu.gemini.spModel.seqcomp.SeqConfigNames.{INSTRUMENT_KEY, OBSERVE_KEY}
 import edu.gemini.spModel.gemini.gmos.GmosCommonType
+import fs2.Stream
 import java.lang.{Double => JDouble, Integer => JInt}
 import org.log4s.{Logger, getLogger}
 import scala.concurrent.duration._
+import seqexec.engine.Result
+import seqexec.engine.Action
+// import seqexec.model.ActionType
 import seqexec.model.dhs.ImageFileId
 import seqexec.model.enum.Guiding
+import seqexec.model.enum.ObserveCommandResult
 import seqexec.server.ConfigUtilOps.{ContentError, ConversionError, _}
 import seqexec.server.gmos.Gmos.SiteSpecifics
 import seqexec.server.gmos.GmosController.Config._
@@ -144,12 +149,24 @@ abstract class Gmos[F[_]: Sync, T<:GmosController.SiteDependentTypes](controller
 
   override def calcStepType(config: Config): Either[SeqexecFailure, StepType] =
     if (Gmos.isNodAndShuffle(config)) {
-      NodAndShuffle(instrument).asRight
+      StepType.NodAndShuffle(instrument).asRight
     } else {
       SequenceConfiguration.calcStepType(config)
     }
 
-  override def observe(config: Config): SeqObserveF[F, ImageFileId, ObserveCommand.Result] =
+  override def observeActions(stepType: StepType, result: Stream[F, Result[F]]): List[List[Action[F]]] =
+    stepType match {
+      case StepType.NodAndShuffle(i) if i === resource =>
+        Nil
+        // List(
+        //   List(Action(ActionType.Observe, result, Action.State(Action.Idle, Nil)),
+        //     Action(ActionType.Observe, result, Action.State(Action.Idle, Nil)))
+        // )
+      case _ =>
+        SequenceActions.observeActions(result)
+    }
+
+  override def observe(config: Config): SeqObserveF[F, ImageFileId, ObserveCommandResult] =
     Reader { fileId =>
       SeqActionF.liftF(calcObserveTime(config)).flatMap { x =>
         SeqActionF.embedF(controller.observe(fileId, x))
@@ -167,8 +184,9 @@ abstract class Gmos[F[_]: Sync, T<:GmosController.SiteDependentTypes](controller
     Sync[F].delay(config.extractAs[JDouble](OBSERVE_KEY / EXPOSURE_TIME_PROP)
       .map(v => Seconds(v.toDouble)).getOrElse(Seconds(10000)))
 
-  override def observeProgress(total: Time, elapsed: ElapsedTime): fs2.Stream[F, Progress] = controller
-    .observeProgress(total, elapsed)
+  override def observeProgress(total: Time, elapsed: ElapsedTime): fs2.Stream[F, Progress] =
+    controller
+      .observeProgress(total, elapsed)
 }
 
 object Gmos {

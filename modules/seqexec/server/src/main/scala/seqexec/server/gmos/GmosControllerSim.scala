@@ -3,23 +3,41 @@
 
 package seqexec.server.gmos
 
+import cats.implicits._
 import cats.effect.Sync
 import cats.effect.Timer
+import java.util.concurrent.atomic.AtomicBoolean
+import org.log4s.getLogger
 import seqexec.model.dhs.ImageFileId
+import seqexec.model.enum.ObserveCommandResult
 import seqexec.server.InstrumentSystem.ElapsedTime
 import seqexec.server.gmos.GmosController.{GmosConfig, NorthTypes, SiteDependentTypes, SouthTypes}
-import seqexec.server.{InstrumentControllerSim, ObserveCommand, Progress}
+import seqexec.server.{InstrumentControllerSim, Progress}
 import squants.Time
 
 object GmosControllerSim {
   def apply[F[_]: Sync: Timer, T <: SiteDependentTypes](name: String): GmosController[F, T] =
     new GmosController[F, T] {
+      private val Log = getLogger
+      private val isNS = new AtomicBoolean(false)
+
+      def log(msg: => String): F[Unit] =
+        Sync[F].delay(Log.info(msg))
+
       private val sim: InstrumentControllerSim[F] = InstrumentControllerSim[F](s"GMOS $name")
 
-      override def observe(fileId: ImageFileId, expTime: Time): F[ObserveCommand.Result] =
-        sim.observe(fileId, expTime)
+      override def observe(fileId: ImageFileId, expTime: Time): F[ObserveCommandResult] =
+        if (isNS.get) {
+          log(s"Simulate taking a Gmos N&S observation with label $fileId") *>
+          sim.observe(fileId, expTime / 5).as(ObserveCommandResult.Paused)
+        } else {
+          sim.observe(fileId, expTime)
+        }
 
-      override def applyConfig(config: GmosConfig[T]): F[Unit] = sim.applyConfig(config)
+      override def applyConfig(config: GmosConfig[T]): F[Unit] = {
+        isNS.set(config.ns.nsPairs > 0)
+        sim.applyConfig(config)
+      }
 
       override def stopObserve: F[Unit] = sim.stopObserve
 
@@ -29,11 +47,11 @@ object GmosControllerSim {
 
       override def pauseObserve: F[Unit] = sim.pauseObserve
 
-      override def resumePaused(expTime: Time): F[ObserveCommand.Result] = sim.resumePaused
+      override def resumePaused(expTime: Time): F[ObserveCommandResult] = sim.resumePaused
 
-      override def stopPaused: F[ObserveCommand.Result] = sim.stopPaused
+      override def stopPaused: F[ObserveCommandResult] = sim.stopPaused
 
-      override def abortPaused: F[ObserveCommand.Result] = sim.abortPaused
+      override def abortPaused: F[ObserveCommandResult] = sim.abortPaused
 
       override def observeProgress(total: Time, elapsed: ElapsedTime): fs2.Stream[F, Progress] =
         sim.observeCountdown(total, elapsed)
