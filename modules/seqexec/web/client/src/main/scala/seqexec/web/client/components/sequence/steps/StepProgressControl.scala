@@ -34,14 +34,16 @@ import seqexec.web.client.reusability._
   * Component to display the step state and control
   */
 object StepProgressCell {
-  final case class Props(clientStatus:  ClientStatus,
-                         instrument:    Instrument,
-                         obsId:         Observation.Id,
-                         state:         SequenceState,
-                         step:          Step,
-                         selectedStep:  Option[StepId],
-                         isPreview:     Boolean,
-                         tabOperations: TabOperations) {
+  final case class Props(
+    clientStatus:  ClientStatus,
+    instrument:    Instrument,
+    obsId:         Observation.Id,
+    state:         SequenceState,
+    step:          Step,
+    selectedStep:  Option[StepId],
+    isPreview:     Boolean,
+    tabOperations: TabOperations
+  ) {
 
     val resourceRunRequested = tabOperations.resourceRunRequested
 
@@ -50,6 +52,9 @@ object StepProgressCell {
 
     def isStopping: Boolean =
       tabOperations.stopRequested === StopOperation.StopInFlight
+
+    def anyError: Boolean =
+      tabOperations.resourceInError(step.id) || state.isError
   }
 
   implicit val propsReuse: Reusability[Props] = Reusability.derive[Props]
@@ -74,7 +79,8 @@ object StepProgressCell {
     Label(
       Label.Props(s"${system.show}",
                   color = labelColor(status).some,
-                  icon  = labelIcon(status)))
+                  icon  = labelIcon(status))
+    )
 
   def stepSystemsStatus(step: StandardStep): VdomElement =
     <.div(
@@ -109,33 +115,37 @@ object StepProgressCell {
                  stepId,
                  fileId,
                  stopping = props.isStopping,
-                 paused   = false)),
+                 paused   = false)
+      ),
       StepsControlButtons(
         StepsControlButtons.Props(props.obsId,
                                   props.instrument,
                                   props.state,
                                   props.step.id,
                                   props.step.isObservePaused,
-                                  props.tabOperations))
-        .when(controlButtonsActive(props))
+                                  props.tabOperations)
+      ).when(controlButtonsActive(props))
     )
 
-  def stepObservationPaused(props:  Props,
-                            stepId: StepId,
-                            fileId: ImageFileId): VdomElement =
+  def stepObservationPaused(
+    props:  Props,
+    stepId: StepId,
+    fileId: ImageFileId
+  ): VdomElement =
     <.div(
       SeqexecStyles.configuringRow,
       ObservationProgressBar(
         ObservationProgressBar
-          .Props(props.obsId, stepId, fileId, stopping = false, paused = true)),
+          .Props(props.obsId, stepId, fileId, stopping = false, paused = true)
+      ),
       StepsControlButtons(
         StepsControlButtons.Props(props.obsId,
                                   props.instrument,
                                   props.state,
                                   props.step.id,
                                   props.step.isObservePaused,
-                                  props.tabOperations))
-        .when(controlButtonsActive(props))
+                                  props.tabOperations)
+      ).when(controlButtonsActive(props))
     )
 
   def stepObservationPausing(props: Props): VdomElement =
@@ -151,8 +161,8 @@ object StepProgressCell {
                                   props.state,
                                   props.step.id,
                                   props.step.isObservePaused,
-                                  props.tabOperations))
-        .when(controlButtonsActive(props))
+                                  props.tabOperations)
+      ).when(controlButtonsActive(props))
     )
 
   def stepSubsystemControl(props: Props): VdomElement =
@@ -161,12 +171,21 @@ object StepProgressCell {
       RunFromStep(
         RunFromStep.Props(props.obsId,
                           props.step.id,
-                          props.tabOperations.resourceInFlight,
-                          props.tabOperations.startFromRequested))
-        .when(props.step.canRunFrom && props.clientStatus.canOperate),
+                          props.tabOperations.resourceInFlight(props.step.id),
+                          props.tabOperations.startFromRequested)
+      ).when(props.step.canRunFrom && props.clientStatus.canOperate),
       <.div(
         SeqexecStyles.specialStateLabel,
-        props.step.show
+        props.step.alignAndCalib(props.instrument) match {
+          case Some(_) if props.tabOperations.resourceInFlight(props.step.id) =>
+            props.step
+              .alignAndCalib(props.instrument)
+              .as("Running Align & Calib...")
+          case Some(_) if !props.anyError =>
+            props.step.alignAndCalib(props.instrument).as("Align & Calib")
+          case _ =>
+            props.step.show
+        }
       ),
       props.step match {
         case step: StandardStep =>
@@ -175,7 +194,8 @@ object StepProgressCell {
               .Props(props.obsId,
                      step.id,
                      step.configStatus.map(_._1),
-                     props.resourceRunRequested))
+                     props.resourceRunRequested)
+          )
         case _ =>
           <.div()
       }

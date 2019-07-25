@@ -31,12 +31,14 @@ import seqexec.web.client.components.SeqexecStyles
 import seqexec.web.client.reusability._
 
 object SequenceTab {
-  final case class Props(router:             RouterCtl[SeqexecPages],
-                         tab:                AvailableTab,
-                         loggedIn:           Boolean,
-                         defaultObserver:    Observer,
-                         runningInstruments: List[Instrument])
-  final case class State(loading:            Boolean)
+  final case class Props(
+    router:             RouterCtl[SeqexecPages],
+    tab:                AvailableTab,
+    loggedIn:           Boolean,
+    defaultObserver:    Observer,
+    runningInstruments: List[Instrument]
+  )
+  final case class State(loading: Boolean)
 
   implicit val propsReuse: Reusability[Props] =
     Reusability.caseClassExcept[Props]('router)
@@ -45,14 +47,16 @@ object SequenceTab {
   type Backend = RenderScope[Props, State, Unit]
 
   def load(b: Backend, inst: Instrument, id: Observation.Id)(
-    e:        ReactEvent): Callback =
+    e:        ReactEvent
+  ): Callback =
     e.preventDefaultCB *>
       e.stopPropagationCB *>
       b.setState(State(loading = true)) *>
       SeqexecCircuit.dispatchCB(LoadSequence(b.props.defaultObserver, inst, id))
 
   private def showSequence(p: Props, page: SeqexecPages)(
-    e:                        ReactEvent): Callback =
+    e:                        ReactEvent
+  ): Callback =
     // prevent default to avoid the link jumping
     e.preventDefaultCB *>
       // Request to display the selected sequence
@@ -154,7 +158,8 @@ object SequenceTab {
             Label.Props(tabTitle,
                         color       = color.some,
                         icon        = icon.some,
-                        extraStyles = List(SeqexecStyles.labelPointer)))
+                        extraStyles = List(SeqexecStyles.labelPointer))
+          )
         )
 
       val resourceLabels =
@@ -163,22 +168,24 @@ object SequenceTab {
           resources.map {
             case (r, s) =>
               val color = s match {
-                case ResourceRunOperation.ResourceRunIdle      => "white"
-                case ResourceRunOperation.ResourceRunCompleted => "green"
-                case ResourceRunOperation.ResourceRunInFlight  => "yellow"
+                case ResourceRunOperation.ResourceRunIdle         => "white"
+                case ResourceRunOperation.ResourceRunCompleted(_) => "green"
+                case ResourceRunOperation.ResourceRunInFlight(_)  => "yellow"
+                case ResourceRunOperation.ResourceRunFailed(_)    => "red"
               }
               s match {
-                case ResourceRunOperation.ResourceRunInFlight =>
+                case ResourceRunOperation.ResourceRunInFlight(_) =>
                   Label(
                     Label.Props(r.show,
                                 color = color.some,
                                 size  = Size.Small,
-                                extraStyles = List(
-                                  SeqexecStyles.activeResourceLabel))): VdomNode
-                case ResourceRunOperation.ResourceRunCompleted =>
-                  Label(Label.Props(r.show,
-                                    color = color.some,
-                                    size  = Size.Small)): VdomNode
+                                extraStyles =
+                                  List(SeqexecStyles.activeResourceLabel))
+                  ): VdomNode
+                case ResourceRunOperation.ResourceRunCompleted(_) =>
+                  Label(
+                    Label.Props(r.show, color = color.some, size = Size.Small)
+                  ): VdomNode
                 case _ => EmptyVdom
               }
           }.toTagMod
@@ -193,7 +200,8 @@ object SequenceTab {
             Label.Props(tabTitle,
                         color       = color.some,
                         icon        = icon.some,
-                        extraStyles = List(SeqexecStyles.labelPointer)))
+                        extraStyles = List(SeqexecStyles.labelPointer))
+          )
         )
 
       val tabContent: VdomNode =
@@ -224,7 +232,9 @@ object SequenceTab {
         )
 
       linkTo(b.props, linkPage)(
-        if (isPreview) previewTabContent else tabContent)
+        if (isPreview) previewTabContent
+        else tabContent
+      )
     }
     .componentWillReceiveProps { f =>
       val preview = f.nextProps.tab.isPreview
@@ -235,7 +245,8 @@ object SequenceTab {
       val isLoading  = f.nextProps.tab.loading
       // Reset the loading state if the id changes
       Callback.when(preview && (id =!= newId || (wasLoading && !isLoading)))(
-        f.setState(State(false)))
+        f.setState(State(false))
+      )
     }
     .configure(Reusability.shouldComponentUpdate)
     .build
