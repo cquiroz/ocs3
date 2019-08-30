@@ -7,6 +7,8 @@ import cats.effect.IO
 import cats.effect.Clock
 import cats.effect.ContextShift
 import cats.effect.Timer
+import cats.effect.concurrent.Ref
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import org.scalatest.FunSuite
 import scala.concurrent.duration._
 import seqexec.model.enum.ObserveCommandResult
@@ -14,6 +16,8 @@ import squants.time.TimeConversions._
 import scala.concurrent.ExecutionContext
 
 class InstrumentControllerSimSpec extends FunSuite {
+  private implicit def unsafeLogger = Slf4jLogger.unsafeCreate[IO]
+
   val noWaitTio: Timer[IO] = new Timer[IO] {
     override def clock: Clock[IO] = Clock.create[IO]
     override def sleep(duration: FiniteDuration): IO[Unit] =
@@ -33,16 +37,18 @@ class InstrumentControllerSimSpec extends FunSuite {
 
   test("simulation doesn't stack overflow") {
     implicit val tio = noWaitTio
+    val obsStateRef = Ref.unsafe[IO, InstrumentControllerSim.ObserveState](InstrumentControllerSim.ObserveState(false, false, false, Int.MaxValue))
     val sim = new InstrumentControllerSim.InstrumentControllerSimImpl[IO](
       "sim",
       false,
       FiniteDuration(10, MILLISECONDS),
       FiniteDuration(5, MILLISECONDS),
-      FiniteDuration(1, SECONDS)
+      FiniteDuration(1, SECONDS),
+      obsStateRef
     )
     // We make a very long observation here to ensure we don't stack overflow
     val result =
-      sim.observeTic(false, false, false, Int.MaxValue, None).unsafeRunSync
+      sim.observeTic(None).unsafeRunSync
     assert(result === ObserveCommandResult.Success)
   }
   test("normal observation") {

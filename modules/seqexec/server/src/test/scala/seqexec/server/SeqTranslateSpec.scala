@@ -12,6 +12,7 @@ import giapi.client.gpi.GpiClient
 import giapi.client.ghost.GhostClient
 import gem.Observation
 import gem.enum.Site
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import java.time.LocalDate
 import org.scalatest.FlatSpec
 import org.http4s.Uri._
@@ -37,6 +38,7 @@ import seqexec.server.gems.GemsControllerSim
 import squants.time.Seconds
 
 class SeqTranslateSpec extends FlatSpec {
+  private implicit def unsafeLogger = Slf4jLogger.unsafeCreate[IO]
 
   implicit val ioTimer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit val csTimer: ContextShift[IO] = IO.contextShift(ExecutionContext.global)

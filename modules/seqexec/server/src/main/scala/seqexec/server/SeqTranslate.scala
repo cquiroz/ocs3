@@ -16,7 +16,7 @@ import edu.gemini.spModel.gemini.altair.AltairParams.GuideStarType
 import fs2.Stream
 import gem.Observation
 import gem.enum.Site
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import io.chrisdavenport.log4cats.Logger
 import mouse.all._
 import seqexec.engine._
 import seqexec.engine.Action.ActionState
@@ -51,12 +51,8 @@ import seqexec.server.gems.{Gems, GemsEpics, GemsHeader, GemsKeywordReaderDummy,
 import squants.Time
 import squants.time.TimeConversions._
 
-class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings) extends ObserveActions {
+class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings)(implicit L: Logger[IO]) extends ObserveActions {
   import SeqTranslate._
-
-  // We establish this as the limit of where logger start
-  // TODO Push it up the stack
-  private implicit def unsafeLogger[F[_]: Sync] = Slf4jLogger.unsafeCreate[F]
 
   private def step(obsId: Observation.Id, i: StepId, config: Config, nextToRun: StepId,
                    datasets: Map[Int, ExecutedDataset])(
@@ -531,7 +527,7 @@ class SeqTranslate(site: Site, systems: Systems[IO], settings: TranslateSettings
 }
 
 object SeqTranslate {
-  def apply(site: Site, systems: Systems[IO], settings: TranslateSettings): SeqTranslate =
+  def apply(site: Site, systems: Systems[IO], settings: TranslateSettings)(implicit L: Logger[IO]): SeqTranslate =
     new SeqTranslate(site, systems, settings)
 
   implicit class ResponseToResult(val r: Either[Throwable, Response]) extends AnyVal {
