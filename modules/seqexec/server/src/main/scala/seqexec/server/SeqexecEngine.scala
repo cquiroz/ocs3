@@ -33,6 +33,7 @@ import seqexec.model.enum._
 import seqexec.model.events.{SequenceStart => ClientSequenceStart, _}
 import seqexec.model.{StepId, UserDetails}
 import seqexec.server.flamingos2.Flamingos2Epics
+import seqexec.server.config._
 import seqexec.server.gcal.GcalEpics
 import seqexec.server.gmos.GmosEpics
 import seqexec.server.gnirs.GnirsEpics
@@ -51,7 +52,7 @@ import shapeless.tag
 
 class SeqexecEngine(
   val systems: Systems[IO],
-  settings: Settings,
+  settings: ServerConfiguration,
   sm: SeqexecMetrics,
   translator: SeqTranslate
 )(
@@ -475,34 +476,32 @@ class SeqexecEngine(
   }
 }
 
-object SeqexecEngine extends SeqexecConfiguration {
+object SeqexecEngine extends SeqexecConfigurationEncoders {
 
   def apply(systems: Systems[IO],
-            settings: Settings,
-            c: SeqexecMetrics)(
+            settings: ServerConfiguration, c: SeqexecMetrics)(
            implicit ceio: ConcurrentEffect[IO],
                     tio: Timer[IO],
                     L: Logger[IO]
   ): IO[SeqexecEngine] = createTranslator(systems, settings).map(new SeqexecEngine(systems, settings, c, _))
 
-  def createTranslator(systems: Systems[IO], settings: Settings)(implicit L: Logger[IO]): IO[SeqTranslate] = {
+  def createTranslator(systems: Systems[IO], settings: ServerConfiguration)(implicit L: Logger[IO]): IO[SeqTranslate] = {
 
     val translatorSettings = TranslateSettings(
-      tcsKeywords = settings.tcsControl.realKeywords,
-      f2Keywords = settings.f2Control.realKeywords,
-      gwsKeywords = settings.gwsControl.realKeywords,
-      gcalKeywords = settings.gcalControl.realKeywords,
-      gmosKeywords = settings.gmosControl.realKeywords,
-      gnirsKeywords = settings.gnirsControl.realKeywords,
-      niriKeywords = settings.niriControl.realKeywords,
-      nifsKeywords = settings.nifsControl.realKeywords,
-      altairKeywords = settings.altairControl.realKeywords,
-      gsaoiKeywords = settings.gsaoiControl.realKeywords,
-      gemsKeywords = settings.gemsControl.realKeywords
+      tcsKeywords = settings.systemsControl.tcsControl.realKeywords,
+      f2Keywords = settings.systemsControl.f2Control.realKeywords,
+      gwsKeywords = settings.systemsControl.gwsControl.realKeywords,
+      gcalKeywords = settings.systemsControl.gcalControl.realKeywords,
+      gmosKeywords = settings.systemsControl.gmosControl.realKeywords,
+      gnirsKeywords = settings.systemsControl.gnirsControl.realKeywords,
+      niriKeywords = settings.systemsControl.niriControl.realKeywords,
+      nifsKeywords = settings.systemsControl.nifsControl.realKeywords,
+      altairKeywords = settings.systemsControl.altairControl.realKeywords,
+      gsaoiKeywords = settings.systemsControl.gsaoiControl.realKeywords,
+      gemsKeywords = settings.systemsControl.gemsControl.realKeywords
     )
 
     SeqTranslate(settings.site, systems, translatorSettings)
-
   }
 
   def splitWhere[A](l: List[A])(p: A => Boolean): (List[A], List[A]) =
@@ -620,7 +619,6 @@ object SeqexecEngine extends SeqexecConfiguration {
   def seqexecConfiguration(
     implicit cs: ContextShift[IO]
   ): Kleisli[IO, Config, Settings] = Kleisli { cfg: Config =>
-    // TODO replace with pure-config
     val site                    = cfg.require[Site]("seqexec-engine.site")
     val odbHost                 = cfg.require[String]("seqexec-engine.odb")
     val dhsServer               = cfg.require[Uri]("seqexec-engine.dhsServer")
@@ -693,36 +691,37 @@ object SeqexecEngine extends SeqexecConfiguration {
     val epicsInit: IO[List[Unit]] = caInit *> epicsSystems.filter(_._1.connect)
       .map(x => initEpicsSystem(x._2, tops)).parSequence
 
-    def settings: IO[Settings] =
+    def settings: IO[ServerConfiguration] =
         IO(LocalDate.now).map { now =>
-          Settings(site,
-                   odbHost,
-                   now,
-                   dhsServer,
-                   altairControl,
-                   gemsControl,
-                   dhsControl,
-                   f2Control,
-                   gcalControl,
-                   ghostControl,
-                   gmosControl,
-                   gnirsControl,
-                   gpiControl,
-                   gpiGdsControl,
-                   ghostGdsControl,
-                   gsaoiControl,
-                   gwsControl,
-                   nifsControl,
-                   niriControl,
-                   tcsControl,
-                   odbNotifications,
-                   instForceError,
-                   failAt,
-                   odbQueuePollingInterval,
-                   gpiUrl,
-                   ghostUrl,
-                   gpiGDS,
-                   ghostGDS)
+          ServerConfiguration(site,
+                     odbHost,
+                     now,
+                     dhsServer,
+                     SystemsControlConfiguration(
+                       altairControl,
+                       gemsControl,
+                       dhsControl,
+                       f2Control,
+                       gcalControl,
+                       gmosControl,
+                       gnirsControl,
+                       gpiControl,
+                       gpiGdsControl,
+                       ghostControl,
+                       ghostGdsControl,
+                       gsaoiControl,
+                       gwsControl,
+                       nifsControl,
+                       niriControl,
+                       tcsControl),
+                     odbNotifications,
+                     instForceError,
+                     failAt,
+                     odbQueuePollingInterval,
+                     gpiUrl,
+                     ghostUrl,
+                     gpiGDS,
+                     ghostGDS)
                  }
 
     epicsInit *> settings
