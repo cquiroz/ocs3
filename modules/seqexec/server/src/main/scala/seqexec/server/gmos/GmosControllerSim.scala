@@ -45,7 +45,7 @@ object NSCurrent {
   implicit val showNSCurrent: Show[NSCurrent] = Show.show { a =>
     s"NS State: file=${a.fileId}, cycle=${a.cycle + 1}, stage=${Gmos.NsSequence.toList
       .lift(a.exposureCount % Gmos.NsSequence.length)
-      .getOrElse("Unknown")}/${a.exposureCount % Gmos.NsSequence.length}, subexposure=${a.exposureCount + 1}, expTime=${a.expTime}"
+      .getOrElse("Unknown")}/${(a.exposureCount % Gmos.NsSequence.length) + 1}, subexposure=${a.exposureCount + 1}, expTime=${a.expTime}"
   }
 }
 
@@ -73,7 +73,7 @@ object NSObsState {
 }
 
 object GmosControllerSim {
-  def apply[F[_]: FlatMap: Timer, T <: SiteDependentTypes](
+  def apply[F[_]: MonadError[?[_], Throwable]: Timer, T <: SiteDependentTypes](
     sim:      InstrumentControllerSim[F],
     nsConfig: Ref[F, NSObsState]
   ): GmosController[F, T] =
@@ -104,7 +104,8 @@ object GmosControllerSim {
           sim.applyConfig(config)
 
       override def setRowsToShuffle(rows: Int): F[Unit] =
-        sim.log(s"Set rows to shuffle to $rows") *>
+              MonadError[F, Throwable].raiseError(new RuntimeException("abc")) *>
+        sim.log(s"Set here rows to shuffle to $rows") *>
           Timer[F].sleep(new FiniteDuration(2, SECONDS))
 
       override def stopObserve: F[Unit] = sim.stopObserve
