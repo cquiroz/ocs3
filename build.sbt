@@ -14,6 +14,9 @@ name := Settings.Definitions.name
 organization in Global := "edu.gemini.ocs"
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
+
+ThisBuild / publishArtifact in (Compile, packageDoc) := false
+
 // Gemini repository
 resolvers in ThisBuild += "Gemini Repository" at "https://github.com/gemini-hlsw/maven-repo/raw/master/releases"
 
@@ -401,7 +404,6 @@ lazy val seqexec_server = project
           POT,
           Knobs,
           OpenCSV,
-          Log4s.value,
           Http4sXml,
           Http4sBoopickle,
           PrometheusClient,
@@ -445,7 +447,7 @@ lazy val seqexec_engine = project
   .settings(
     addCompilerPlugin(Plugins.kindProjectorPlugin),
     addCompilerPlugin(Plugins.paradisePlugin),
-    libraryDependencies ++= Seq(Fs2, CatsEffect.value, Log4s.value, Log4Cats.value) ++ Monocle.value
+    libraryDependencies ++= Seq(Fs2, CatsEffect.value, Log4Cats.value) ++ Monocle.value
   )
 
 lazy val acm = project

@@ -131,7 +131,7 @@ object Settings {
     )
     val Log4s                  = Def.setting("org.log4s"              %%% "log4s"                    % LibraryVersions.log4s)
     val PrometheusClient       = "io.prometheus"                      %   "simpleclient_common"      % LibraryVersions.prometheusClient
-    val Logging                = Def.setting(Seq(JuliSlf4j, Log4s.value) ++ Logback)
+    val Logging                = Def.setting(Seq(JuliSlf4j) ++ Logback)
     val Knobs                  = "io.getnelson.knobs"                 %%  "core"                     % LibraryVersions.knobs
     val OpenCSV                = "net.sf.opencsv"                     %   "opencsv"                  % LibraryVersions.opencsv
     val Squants                = Def.setting("org.typelevel"          %%% "squants"                  % LibraryVersions.squants)
