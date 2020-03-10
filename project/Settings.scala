@@ -27,6 +27,7 @@ object Settings {
     val javaTimeJS              = "2.0.0-RC3"
     val scalaJQuery             = "1.3"
     val scalaJSReactCommon      = "0.5.2"
+    val scalaJSSemanticUI       = "0.3.4"
     val scalaJSReactVirtualized = "0.7.2"
     val scalaJSReactClipboard   = "0.10.3"
     val scalaJSReactDraggable   = "0.7.2"
@@ -53,7 +54,7 @@ object Settings {
     val janino                  = "3.1.0"
     val logstash                = "6.3"
     val pureConfig              = "0.12.3"
-    val monocleVersion          = "2.0.2"
+    val monocleVersion          = "2.0.4"
     val circeVersion            = "0.13.0"
     val doobieVersion           = "0.6.0"
     val flywayVersion           = "6.0.4"
@@ -87,7 +88,7 @@ object Settings {
 
     // Gemini Libraries
     val gspMath                 = "0.1.15"
-    val gspCore                 = "0.1.5"
+    val gspCore                 = "0.1.6"
 
   }
 
@@ -172,6 +173,7 @@ object Settings {
     val ScalaJSDom              = Def.setting("org.scala-js"            %%% "scalajs-dom"        % LibraryVersions.scalaDom)
     val ScalaJSReactCommon      = Def.setting("io.github.cquiroz.react" %%% "common"             % LibraryVersions.scalaJSReactCommon)
     val ScalaJSReactCats        = Def.setting("io.github.cquiroz.react" %%% "cats"               % LibraryVersions.scalaJSReactCommon)
+    val ScalaJSReactSemanticUI  = Def.setting("io.github.cquiroz.react" %%% "react-semantic-ui"  % LibraryVersions.scalaJSSemanticUI)
     val ScalaJSReactVirtualized = Def.setting("io.github.cquiroz.react" %%% "react-virtualized"  % LibraryVersions.scalaJSReactVirtualized)
     val ScalaJSReactDraggable   = Def.setting("io.github.cquiroz.react" %%% "react-draggable"    % LibraryVersions.scalaJSReactDraggable)
     val ScalaJSReactSortable    = Def.setting("io.github.cquiroz.react" %%% "react-sortable-hoc" % LibraryVersions.scalaJSReactSortable)
