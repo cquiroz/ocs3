@@ -3,27 +3,26 @@
 
 package seqexec.server.ghost
 
-import cats.data.Kleisli
 import cats.data.EitherT
+import cats.data.Kleisli
 import cats.effect.{Concurrent, Sync, Timer}
 import cats.implicits._
-import fs2.Stream
-import edu.gemini.spModel.seqcomp.SeqConfigNames._
 import edu.gemini.spModel.gemini.ghost.{Ghost => SPGhost}
+import edu.gemini.spModel.seqcomp.SeqConfigNames._
+import fs2.Stream
 import gem.enum.LightSinkName
-import gsp.math.{Coordinates, Declination, RightAscension}
 import gsp.math.optics.Format
+import gsp.math.{Coordinates, Declination, RightAscension}
 import io.chrisdavenport.log4cats.Logger
-
 import scala.concurrent.duration._
 import seqexec.model.dhs.ImageFileId
 import seqexec.model.enum.Instrument
 import seqexec.model.enum.ObserveCommandResult
-import seqexec.server.ConfigUtilOps._
 import seqexec.server._
 import seqexec.server.CleanConfig.extractItem
-import seqexec.server.keywords.GdsInstrument
+import seqexec.server.ConfigUtilOps._
 import seqexec.server.keywords.GdsClient
+import seqexec.server.keywords.GdsInstrument
 import seqexec.server.keywords.KeywordsClient
 import squants.time.Seconds
 import squants.time.Time
@@ -109,7 +108,8 @@ object Ghost {
           baseRAHMS     <- raExtractor(SPGhost.BASE_RA_HMS)
           baseDecDMS    <- decExtractor(SPGhost.BASE_DEC_DMS)
 
-          fiberAgitator = extractor[Boolean](SPGhost.FIBER_AGITATOR)
+          fiberAgitator1 = extractor[Boolean](SPGhost.FIBER_AGITATOR_1)
+          fiberAgitator2 = extractor[Boolean](SPGhost.FIBER_AGITATOR_2)
           srifu1Name    = extractor[String](SPGhost.SRIFU1_NAME)
           srifu1RAHMS   <- raExtractor(SPGhost.SRIFU1_RA_HMS)
           srifu1DecHDMS <- decExtractor(SPGhost.SRIFU1_DEC_DMS)
@@ -128,7 +128,8 @@ object Ghost {
           config <- GhostConfig(
             (baseRAHMS, baseDecDMS).mapN(Coordinates.apply),
             1.minute,
-            FiberAgitator.fromBoolean(fiberAgitator.getOrElse(false)),
+            FiberAgitator.fromBoolean(fiberAgitator1.getOrElse(false)),
+            FiberAgitator.fromBoolean(fiberAgitator2.getOrElse(false)),
             srifu1Name, (srifu1RAHMS, srifu1DecHDMS).mapN(Coordinates.apply),
             srifu2Name, (srifu2RAHMS, srifu2DecHDMS).mapN(Coordinates.apply),
             hrifu1Name, (hrifu1RAHMS, hrifu1DecHDMS).mapN(Coordinates.apply),

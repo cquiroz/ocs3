@@ -14,7 +14,7 @@ object FiberAgitator {
 
   implicit val FiberAgitatorGiapi: GiapiConfig[FiberAgitator] =
     GiapiConfig.instance {
-      case On => "1"
+      case On  => "1"
       case Off => "0"
     }
 
@@ -30,14 +30,17 @@ object DemandType {
   case object DemandRADec extends DemandType {
     val demandType = "IFU_DEMAND_RADEC"
   }
+  case object DemandXY extends DemandType {
+    val demandType = "IFU_DEMAND_XY"
+  }
   case object DemandPark extends DemandType {
     val demandType = "IFU_DEMAND_PARK"
   }
+  implicit val FiberAgitatorEnumerated: Enumerated[DemandType] =
+    Enumerated.of(DemandRADec, DemandXY, DemandPark)
 
-  implicit val DemandTypePGiapi: GiapiConfig[DemandPark.type] =
-    _.demandType
-  implicit val DemandTypeRGiapi: GiapiConfig[DemandRADec.type] =
-    _.demandType
+  implicit val DemandTypeCconfiguration: GiapiConfig[DemandType] =
+    GiapiConfig.instance(_.demandType)
 }
 
 sealed abstract class IFUNum(val ifuNum: Int) extends Product with Serializable {
@@ -59,15 +62,19 @@ sealed abstract class BundleConfig(val configName: String) extends Product with 
 
 object BundleConfig {
   case object Standard extends BundleConfig(configName = "IFU_LORES")
-  case object HighRes  extends BundleConfig(configName = "IFU_HIRES")
-  case object Sky      extends BundleConfig(configName = "IFU_SKY")
-  implicit val bundleConfiguration: GiapiConfig[BundleConfig] = _.configName
+  case object HighRes extends BundleConfig(configName  = "IFU_HIRES")
+  case object Sky extends BundleConfig(configName      = "IFU_SKY")
+  implicit val bundleConfiguration: GiapiConfig[BundleConfig] = {
+    case Standard => "0"
+    case HighRes  => "1"
+    case Sky      => "2"
+  }
 }
 
 sealed abstract class IFUTargetType(val targetType: String) extends Product with Serializable
 object IFUTargetType {
 
-  case object NoTarget extends IFUTargetType(targetType = "IFU_TARGET_NONE")
+  case object NoTarget extends IFUTargetType(targetType    = "IFU_TARGET_NONE")
   case object SkyPosition extends IFUTargetType(targetType = "IFU_TARGET_SKY")
   final case class Target(name: String) extends IFUTargetType(targetType = "IFU_TARGET_OBJECT")
 
@@ -77,6 +84,9 @@ object IFUTargetType {
     case Some(x)     => Target(x)
   }
 
-  implicit val ifuTargetTypeConfiguration: GiapiConfig[IFUTargetType] = _.targetType
+  implicit val ifuTargetTypeConfiguration: GiapiConfig[IFUTargetType] = {
+    case NoTarget    => "0"
+    case SkyPosition => "1"
+    case Target(_)   => "2"
+  }
 }
-
