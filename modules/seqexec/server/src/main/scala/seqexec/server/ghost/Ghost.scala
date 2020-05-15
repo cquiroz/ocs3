@@ -13,6 +13,7 @@ import fs2.Stream
 import gem.enum.LightSinkName
 import gsp.math.optics.Format
 import gsp.math.{Coordinates, Declination, RightAscension}
+import gem.Target
 import io.chrisdavenport.log4cats.Logger
 import scala.concurrent.duration._
 import seqexec.model.dhs.ImageFileId
@@ -26,8 +27,8 @@ import seqexec.server.keywords.GdsInstrument
 import seqexec.server.keywords.KeywordsClient
 import squants.time.Seconds
 import squants.time.Time
-
 import scala.reflect.ClassTag
+import gsp.math.ProperMotion
 
 final case class Ghost[F[_]: Logger: Concurrent: Timer](controller: GhostController[F])
     extends GdsInstrument[F]
@@ -102,6 +103,20 @@ object Ghost {
     val raExtractor = formatExtractor[RightAscension](RightAscension.fromStringHMS)
     val decExtractor = formatExtractor[Declination](Declination.fromStringSignedDMS)
 
+    val MaxTargets = 8
+
+    def userTargets: Either[ExtractFailure, List[Option[Target]]] = (for {
+      i <- 1 to MaxTargets
+    } yield {
+      val (a, b, c, _, _) = SPGhost.userTargetParams(i)
+      for {
+        ra <- raExtractor(b)
+        dec <- decExtractor(c)
+        c = (ra, dec).mapN(Coordinates.apply)
+        n <- config.extractInstAs[String](a)
+      } yield c.map(coord => Target(n, ProperMotion.const(coord).asRight))
+    }).toList.sequence
+
     EitherT {
       Sync[F].delay {
         (for {
@@ -125,6 +140,8 @@ object Ghost {
           hrifu2RAHMS   <- raExtractor(SPGhost.HRIFU2_RA_HMS)
           hrifu2DecHDMS <- decExtractor(SPGhost.HRIFU2_DEC_DMS)
 
+          targets       <- userTargets
+
           config <- GhostConfig(
             (baseRAHMS, baseDecDMS).mapN(Coordinates.apply),
             1.minute,
@@ -133,7 +150,8 @@ object Ghost {
             srifu1Name, (srifu1RAHMS, srifu1DecHDMS).mapN(Coordinates.apply),
             srifu2Name, (srifu2RAHMS, srifu2DecHDMS).mapN(Coordinates.apply),
             hrifu1Name, (hrifu1RAHMS, hrifu1DecHDMS).mapN(Coordinates.apply),
-            hrifu2RAHMS.as("Sky"), (hrifu2RAHMS, hrifu2DecHDMS).mapN(Coordinates.apply))
+            hrifu2RAHMS.as("Sky"), (hrifu2RAHMS, hrifu2DecHDMS).mapN(Coordinates.apply),
+            targets.flatten)
         } yield {
           config
         }).leftMap(e => SeqexecFailure.Unexpected(ConfigUtilOps.explain(e)))
