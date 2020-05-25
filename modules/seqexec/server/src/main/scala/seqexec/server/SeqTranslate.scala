@@ -172,7 +172,6 @@ object SeqTranslate {
         .headOption
         .map(extractInstrument)
         .getOrElse(Either.left(SeqexecFailure.UnrecognizedInstrument("UNKNOWN")))
-        println(sequence.targets)
 
       steps.map { sts =>
         instName.fold(e => (List(e), none), i =>
@@ -184,15 +183,6 @@ object SeqTranslate {
                   obsId,
                   sequence.title,
                   i,
-                  sequence.targets.map {case (_, t) =>
-                    t.fold(
-                      // There are no coordinates for ToO, we'll set them to 0, 0
-                      o => Target(o.name, ProperMotion.const(Coordinates.unsafeFromRadians(0, 0)).asRight),
-                      s => Target(s.name, ProperMotion.const(Coordinates(RightAscension.fromRadians(s.coordinates.ra.toAngle.toRadians), Declination.unsafeFromRadians(s.coordinates.dec.toAngle.toRadians))).asRight),
-                      // There is not enough info to build a non sidereal target
-                      n => Target(n.name, EphemerisKey.MajorBody(0).asLeft)
-                    )
-                  },
                   ss
                 )
               }

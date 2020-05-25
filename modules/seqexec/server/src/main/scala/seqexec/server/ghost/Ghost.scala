@@ -105,17 +105,18 @@ object Ghost {
 
     val MaxTargets = 8
 
-    def userTargets: Either[ExtractFailure, List[Option[Target]]] = (for {
+    def userTargets: List[Option[Target]] = (for {
       i <- 1 to MaxTargets
     } yield {
-      val (a, b, c, _, _) = SPGhost.userTargetParams(i)
-      for {
-        ra <- raExtractor(b)
-        dec <- decExtractor(c)
+      val (a, _, _, d, e) = SPGhost.userTargetParams(i)
+      (for {
+        ra <- raExtractor(d)
+        dec <- decExtractor(e)
         c = (ra, dec).mapN(Coordinates.apply)
         n <- config.extractInstAs[String](a)
-      } yield c.map(coord => Target(n, ProperMotion.const(coord).asRight))
-    }).toList.sequence
+        // Note the coordinates are PM corrected on the OT side
+      } yield c.map(coord => Target(n, ProperMotion.const(coord).asRight))).toOption.flatten
+    }).toList
 
     EitherT {
       Sync[F].delay {
@@ -140,8 +141,6 @@ object Ghost {
           hrifu2RAHMS   <- raExtractor(SPGhost.HRIFU2_RA_HMS)
           hrifu2DecHDMS <- decExtractor(SPGhost.HRIFU2_DEC_DMS)
 
-          targets       <- userTargets
-
           config <- GhostConfig(
             (baseRAHMS, baseDecDMS).mapN(Coordinates.apply),
             1.minute,
@@ -151,10 +150,9 @@ object Ghost {
             srifu2Name, (srifu2RAHMS, srifu2DecHDMS).mapN(Coordinates.apply),
             hrifu1Name, (hrifu1RAHMS, hrifu1DecHDMS).mapN(Coordinates.apply),
             hrifu2RAHMS.as("Sky"), (hrifu2RAHMS, hrifu2DecHDMS).mapN(Coordinates.apply),
-            targets.flatten)
-        } yield {
-          config
-        }).leftMap(e => SeqexecFailure.Unexpected(ConfigUtilOps.explain(e)))
+            userTargets.flatten)
+        } yield config
+        ).leftMap(e => SeqexecFailure.Unexpected(ConfigUtilOps.explain(e)))
       }
     }.widenRethrowT
   }

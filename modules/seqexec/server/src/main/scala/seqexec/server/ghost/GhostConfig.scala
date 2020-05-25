@@ -14,6 +14,7 @@ import scala.concurrent.duration._
 import seqexec.server.ConfigUtilOps.ContentError
 import seqexec.server.ConfigUtilOps.ExtractFailure
 import gem.{ Target => GemTarget }
+import gem.enum.GiapiStatusApply
 
 // GHOST has a number of different possible configuration modes: we add types for them here.
 sealed trait GhostConfig {
@@ -32,13 +33,13 @@ sealed trait GhostConfig {
   def targetConfig(t: GemTarget, i: Int): Configuration =
     // Note the base coordinates are already PM corrected in the OT
     t.track.map(_.baseCoordinates).map { c =>
-      Configuration.single(s"ghost:cc:cu:target${i}.dec", c.dec.toAngle.toSignedDoubleDegrees) |+|
-      Configuration.single(s"ghost:cc:cu:target${i}.ra", c.ra.toAngle.toDoubleDegrees) |+|
-      Configuration.single(s"ghost:cc:cu:target${i}.name", t.name)
+      Configuration.single(GhostConfig.UserTargetsApply.get(i).foldMap(_._3.applyItem), c.dec.toAngle.toSignedDoubleDegrees) |+|
+      Configuration.single(GhostConfig.UserTargetsApply.get(i).foldMap(_._3.applyItem), c.ra.toAngle.toDoubleDegrees) |+|
+      Configuration.single(GhostConfig.UserTargetsApply.get(i).foldMap(_._1.applyItem), t.name)
     }.getOrElse(Configuration.Zero)
 
   def userTargetsConfig: Configuration =
-    userTargets.zipWithIndex.map(Function.tupled(targetConfig)).combineAll
+    userTargets.zipWithIndex.map(Function.tupled(targetConfig)).combineAll |+| Configuration.single(GiapiStatusApply.GhostUserTargetCount.applyItem, userTargets.length)
 
   def ifu1Config: Configuration =
     GhostConfig.ifuConfig(IFUNum.IFU1, ifu1TargetType, ifu1Coordinates, ifu1BundleType)
@@ -71,6 +72,17 @@ object GhostConfig            {
       cfg("bundle", bundleConfig.configValue)
     a
   }
+
+  val UserTargetsApply: Map[Int, (GiapiStatusApply, GiapiStatusApply, GiapiStatusApply)] =
+    Map(
+      0 -> ((GiapiStatusApply.GhostUserTarget0Name, GiapiStatusApply.GhostUserTarget0CoordsRADeg, GiapiStatusApply.GhostUserTarget0CoordsDecDeg)),
+      1 -> ((GiapiStatusApply.GhostUserTarget1Name, GiapiStatusApply.GhostUserTarget1CoordsRADeg, GiapiStatusApply.GhostUserTarget1CoordsDecDeg)),
+      2 -> ((GiapiStatusApply.GhostUserTarget2Name, GiapiStatusApply.GhostUserTarget2CoordsRADeg, GiapiStatusApply.GhostUserTarget2CoordsDecDeg)),
+      3 -> ((GiapiStatusApply.GhostUserTarget3Name, GiapiStatusApply.GhostUserTarget3CoordsRADeg, GiapiStatusApply.GhostUserTarget3CoordsDecDeg)),
+      4 -> ((GiapiStatusApply.GhostUserTarget4Name, GiapiStatusApply.GhostUserTarget4CoordsRADeg, GiapiStatusApply.GhostUserTarget4CoordsDecDeg)),
+      5 -> ((GiapiStatusApply.GhostUserTarget5Name, GiapiStatusApply.GhostUserTarget5CoordsRADeg, GiapiStatusApply.GhostUserTarget5CoordsDecDeg)),
+      6 -> ((GiapiStatusApply.GhostUserTarget6Name, GiapiStatusApply.GhostUserTarget6CoordsRADeg, GiapiStatusApply.GhostUserTarget6CoordsDecDeg)),
+      7 -> ((GiapiStatusApply.GhostUserTarget7Name, GiapiStatusApply.GhostUserTarget7CoordsRADeg, GiapiStatusApply.GhostUserTarget7CoordsDecDeg)))
 
   private[ghost] def ifuPark(ifuNum: IFUNum): Configuration = {
     def cfg[P: GiapiConfig](paramName: String, paramVal: P) =
