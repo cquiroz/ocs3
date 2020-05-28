@@ -20,6 +20,8 @@ import cats.ApplicativeError
 import scala.reflect.ClassTag
 import shapeless.tag
 import shapeless.tag.@@
+import gem.enum.GiapiStatusApply
+import giapi.client.commands.Configuration
 
 /**
   * Utility operations to work with Configs from the ODB

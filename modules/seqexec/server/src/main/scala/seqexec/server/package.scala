@@ -28,6 +28,9 @@ import seqexec.model.enum._
 import seqexec.engine._
 import seqexec.server.SequenceGen.StepGen
 import squants.Time
+import giapi.client.GiapiConfig
+import giapi.client.commands.Configuration
+import gem.enum.GiapiStatusApply
 
 package server {
   @Lenses
@@ -164,6 +167,9 @@ package object server {
     def toHandle: HandleType[F, A] =
       StateT[F, EngineState[F], A]{ st => f(st).pure[F] }.toHandle
   }
+
+  def giapiConfig[A: GiapiConfig](key: GiapiStatusApply, value: A): Configuration =
+    Configuration.single(key.applyItem, value)
 
   def toStepList[F[_]](seq: SequenceGen[F], d: HeaderExtraData): List[engine.Step[F]] =
     seq.steps.map(StepGen.generate(_, d))

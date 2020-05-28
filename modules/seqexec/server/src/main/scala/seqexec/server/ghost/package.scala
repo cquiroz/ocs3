@@ -1,7 +1,12 @@
 package seqexec.server.ghost
 
+import cats.Eq
+import cats.implicits._
 import gem.util.Enumerated
 import giapi.client.GiapiConfig
+import edu.gemini.spModel.gemini.ghost.GhostAsterism.GuideFiberState
+import edu.gemini.spModel.gemini.ghost.GhostBinning
+import scala.concurrent.duration.FiniteDuration
 
 sealed trait FiberAgitator extends Product with Serializable
 
@@ -96,3 +101,14 @@ object IFUTargetType {
     case Target(_)   => "2"
   }
 }
+
+final case class ChannelConfig(binning: GhostBinning, exposure: FiniteDuration, count: Int)
+
+object ChannelConfig {
+
+  implicit val eqGhostBinning: Eq[GhostBinning] = Eq.fromUniversalEquals
+
+  implicit val eqChannelConfig: Eq[ChannelConfig] = Eq.by(x => (x.binning, x.exposure, x.count))
+}
+
+// final case class TargetConfig(name: String, coords: Coordinates, guideFiber: Option[GuideFiberState])

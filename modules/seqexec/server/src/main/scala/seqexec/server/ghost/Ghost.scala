@@ -29,6 +29,9 @@ import squants.time.Seconds
 import squants.time.Time
 import scala.reflect.ClassTag
 import gsp.math.ProperMotion
+import java.lang.{ Double => JDouble, Integer => JInt }
+import edu.gemini.spModel.gemini.ghost.GhostBinning
+import edu.gemini.spModel.gemini.ghost.GhostAsterism.GuideFiberState
 
 final case class Ghost[F[_]: Logger: Concurrent: Timer](controller: GhostController[F])
     extends GdsInstrument[F]
@@ -129,6 +132,7 @@ object Ghost {
           srifu1Name    = extractor[String](SPGhost.SRIFU1_NAME)
           srifu1RAHMS   <- raExtractor(SPGhost.SRIFU1_RA_HMS)
           srifu1DecHDMS <- decExtractor(SPGhost.SRIFU1_DEC_DMS)
+          // srifu1Guiding = extractor[GuideFiberState](SPGhost.SRIFU1_GUIDING)
 
           srifu2Name    = extractor[String](SPGhost.SRIFU2_NAME)
           srifu2RAHMS   <- raExtractor(SPGhost.SRIFU2_RA_HMS)
@@ -141,7 +145,17 @@ object Ghost {
           hrifu2RAHMS   <- raExtractor(SPGhost.HRIFU2_RA_HMS)
           hrifu2DecHDMS <- decExtractor(SPGhost.HRIFU2_DEC_DMS)
 
+          blueBinning   <- config.extractInstAs[GhostBinning](SPGhost.BLUE_BINNING_PROP)
+          redBinning    <- config.extractInstAs[GhostBinning](SPGhost.RED_BINNING_PROP)
+          blueExposure  <- config.extractObsAs[JDouble](SPGhost.BLUE_EXPOSURE_TIME_PROP).map(_.doubleValue())
+          redExposure   <- config.extractObsAs[JDouble](SPGhost.RED_EXPOSURE_TIME_PROP).map(_.doubleValue())
+          blueCount     <- config.extractObsAs[JInt](SPGhost.BLUE_EXPOSURE_COUNT_PROP).map(_.intValue())
+          redCount      <- config.extractObsAs[JInt](SPGhost.RED_EXPOSURE_COUNT_PROP).map(_.intValue())
+
           config <- GhostConfig(
+            ChannelConfig(blueBinning, blueExposure.second, blueCount),
+            ChannelConfig(redBinning, redExposure.second, redCount),
+            // srifu1Guiding,
             (baseRAHMS, baseDecDMS).mapN(Coordinates.apply),
             1.minute,
             FiberAgitator.fromBoolean(fiberAgitator1.getOrElse(false)),
@@ -151,8 +165,9 @@ object Ghost {
             hrifu1Name, (hrifu1RAHMS, hrifu1DecHDMS).mapN(Coordinates.apply),
             hrifu2RAHMS.as("Sky"), (hrifu2RAHMS, hrifu2DecHDMS).mapN(Coordinates.apply),
             userTargets.flatten)
-        } yield config
-        ).leftMap(e => SeqexecFailure.Unexpected(ConfigUtilOps.explain(e)))
+        } yield {
+        config}
+        ).leftMap(e => {System.out.println(e);SeqexecFailure.Unexpected(ConfigUtilOps.explain(e))})
       }
     }.widenRethrowT
   }
