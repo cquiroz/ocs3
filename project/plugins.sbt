@@ -4,9 +4,9 @@ resolvers  ++= Seq(
 )
 // Gives support for Scala.js compilation
 val scalaJSVersion =
-  Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.0.1")
+  Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.1.0")
 
-addSbtPlugin("edu.gemini"         % "sbt-gsp"                  % "0.1.17")
+addSbtPlugin("edu.gemini"         % "sbt-gsp"                  % "0.2.1")
 
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % scalaJSVersion)
 
@@ -29,7 +29,7 @@ addSbtPlugin("com.typesafe.sbt"   % "sbt-git"                  % "1.0.0")
 addSbtPlugin("com.dwijnand"       % "sbt-dynver"               % "4.1.1")
 
 // Use NPM modules rather than webjars
-addSbtPlugin("ch.epfl.scala"      % "sbt-scalajs-bundler"      % "0.17.0")
+addSbtPlugin("ch.epfl.scala"      % "sbt-scalajs-bundler"      % "0.18.0")
 
 // Used to find dependencies
 addSbtPlugin("net.virtual-void"   % "sbt-dependency-graph"     % "0.9.2")
